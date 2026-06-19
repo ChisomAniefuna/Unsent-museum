@@ -1,0 +1,961 @@
+Use this as the hope museum gallery artifact.
+This is a Fluid design — generative WebGL art from https://fluid.krackeddevs.com.
+Engine: Truchet  ·  Palette: SUNSET  ·  Aspect: 1:1
+Surface: Square + halftone, pixelate 47
+Zoom 1.25  ·  Warp 1.5  ·  Speed 0.95  ·  Grain 0.135  ·  Seed 18
+Open / remix: https://fluid.krackeddevs.com/#p=0.95,1.25,1.5,0.135,47,10,1,1,18,0,0,1,0,0,4
+With the Fluid MCP, call decode_link on that URL to load it exactly; otherwise recreate it with create_piece using the values above.
+LMN1.WzMsOCw0OTY3LCJmZjdhMTQiLCJlOGU0ZGMiLCIzYTNlNDYiLCJmZmIwNjYiLCIxYzFlMjIiLCIxNjo5IiwtNiwxLjM2LDEuMjMsMC45NTIsMS4yMiw0LjIsMC43MiwxLjAyLDAuMjcsMC45LDE0LDI1NSwwLjE2OSwwLjIsMC4wMjIsMTMwLDIzLDAuMDkzLDAuMjA0LDEuMjU0LDAuODQzLDYsMCwyLDAsMC42LDEsNCw1LDAuNzA5LDYsNCwxLDMsMC4zNzcsMC44MTQsMC4xMjMsMS4wNDksMC43OTZd
+LMN1.WzMsNiwxNzQ0LCJmZjdhMTQiLCJlOGU0ZGMiLCIzYTNlNDYiLCJmZmIwNjYiLCIxYzFlMjIiLCIxNjo5IiwtNiwxLjM2LDEuMjMsMC45NTIsMS4yMiw0LjIsMC43MiwxLjAyLDAuMjcsMC45LDE0LDI1NSwwLjE2OSwwLjIsMC4wMjIsMTMwLDIzLDAuMDkzLDAuMjA0LDEuMjU0LDAuODQzLDYsMCwyLDAsMC42LDEsMSwwLDAuOTEyLDMsNSwxLDEsMC41MjYsMC4xNjQsMC4zNDMsMC4yOTEsMC41MjZd
+
+LMN1.WzMsNiwxMzA1LCIwZTNhNWMiLCIyZTdmYjgiLCIwMDIyMmUiLCIwMDAwMDAiLCIwMzA2MDgiLCIxNjo5IiwtMTgwLDAuNSwxLjI5LDEuMjgsMC41OCw1LjgsMS42NSwwLjc2LDAuMjEsMS4xMiw0NSw2NywwLjUxLDAuNjEsMC4yMTUsMTI2LDM0LDAuNDYsMC4yOSwxLjAyLDAuODcsNy41LDAsMiwwLDAuNiwxLDQsNSwwLjE5Myw2LDMsMiwyLDAuMzYxLDAuNTMsMC40NDQsMC40MTcsMC4xXQ
+
+This is a Fluid design — generative WebGL art from https://fluid.krackeddevs.com.
+Engine: Flow  ·  Palette: SUNSET  ·  Aspect: 1:1
+Surface: ASCII, pixelate 4
+Zoom 3.70  ·  Warp 5.0  ·  Speed 2.50  ·  Grain 0.070  ·  Seed 38
+Open / remix: https://fluid.krackeddevs.com/#p=2.5,3.7,5,0.07,4,8,0,1,38.14,0,0,1,0,0,1,2
+With the Fluid MCP, call decode_link on that URL to load it exactly; otherwise recreate it with create_piece using the values above.
+
+This is a Fluid design — generative WebGL art from https://fluid.krackeddevs.com.
+Engine: Truchet  ·  Palette: SUNSET  ·  Aspect: 1:1
+Surface: Square + halftone, pixelate 2
+Zoom 1.75  ·  Warp 6.1  ·  Speed 1.45  ·  Grain 0.070  ·  Seed 30
+Open / remix: https://fluid.krackeddevs.com/#p=1.45,1.75,6.1,0.07,2,6,1,1,30,0,0,1,0,0,4
+With the Fluid MCP, call decode_link on that URL to load it exactly; otherwise recreate it with create_piece using the values above.
+
+This is a Fluid design — generative WebGL art from https://fluid.krackeddevs.com.
+Engine: Interfere  ·  Palette: SUNSET  ·  Aspect: 1:1
+Surface: Square + halftone
+Zoom 3.00  ·  Warp 9.0  ·  Speed 2.45  ·  Grain 0.175  ·  Seed 30
+Open / remix: https://fluid.krackeddevs.com/#p=2.45,3,9,0.175,1,6,1,1,30,0,0,1,0,0,5
+With the Fluid MCP, call decode_link on that URL to load it exactly; otherwise recreate it with create_piece using the values above.
+#ifdef GL_ES
+precision mediump float;
+#endif
+
+uniform vec2 u_resolution;
+uniform float u_time;
+
+#define TAU 6.28318530718
+
+// Non-linear space distortion mapping out generations of nested memories
+vec2 foldSpace(vec2 p, float i, float t) {
+    float angle = i * 0.45 + t * 0.15;
+    // Iterative sine-warps that continuously divide the coordinate grid organically
+    p = mat2(cos(angle), -sin(angle), sin(angle), cos(angle)) * p;
+    p.x += sin(p.y * 3.5 + t * 0.5) * 0.12;
+    p.y += cos(p.x * 3.5 - t * 0.4) * 0.12;
+    return p;
+}
+
+void main() {
+    vec2 st = (gl_FragCoord.xy * 2.0 - u_resolution.xy) / u_resolution.y;
+    float t = u_time * 0.5; // Slow, nostalgic passage of time
+    float dCenter = length(st);
+
+    // MONOCHROMATIC BASE: Pure, sacred Mother-Gold / Amber Glow
+    vec3 pureGold = vec3(0.98, 0.72, 0.32);
+    
+    float recursiveField = 0.0;
+    float lightWeight = 0.0;
+    vec2 p = st * 0.9;
+
+    // 4 Generations of structural depth (the nested protection of family lines)
+    for(float i = 1.0; i <= 4.0; i++) {
+        p = foldSpace(p, i, t);
+        float d = length(p);
+        
+        // High-contrast, sharp interference rays nested inside each layer
+        float rays = abs(sin(atan(p.y, p.x) * 4.0 + t * 1.2)) * cos(d * 6.0 - t * i);
+        
+        // Accumulate a precise, soft volumetric glow matrix
+        float layerGlow = smoothstep(0.12, 0.0, abs(rays * exp(-d * 1.1))) * smoothstep(1.3 / i, 0.0, d);
+        
+        recursiveField += layerGlow * (1.2 / i);
+        lightWeight += (1.0 / i) * smoothstep(0.35, 0.0, d);
+    }
+
+    // LIGHT CONTROL ENGINE: Layering shadows and self-shadowing lines to build depth
+    vec3 ambientDark = vec3(0.015, 0.008, 0.003); // Deep, warm vintage dark background
+    
+    // Core illumination calculated via deep spatial recursion tracking
+    vec3 lightLayers = pureGold * recursiveField * 1.6;
+    
+    // High-frequency rim light accents along the structural fold lines
+    vec3 fineHighlights = vec3(1.0, 0.95, 0.85) * pow(recursiveField, 3.0) * 0.4;
+    
+    // Volumetric center pulse (the absolute core of love, cradled safely)
+    vec3 centerCradle = pureGold * lightWeight * (1.2 + 0.3 * sin(t * 3.0));
+
+    // Master color composite entirely driven by a single hue split by light intensity
+    vec3 finalCol = mix(ambientDark, lightLayers + fineHighlights, smoothstep(0.02, 0.9, recursiveField));
+    finalCol += centerCradle * 0.5;
+
+    // Clean film-vignette boundary map
+    gl_FragColor = vec4(clamp(finalCol, 0.0, 1.0) * smoothstep(1.5, 0.35, dCenter), 1.0);
+}
+
+
+#ifdef GL_ES
+precision mediump float;
+#endif
+
+uniform vec2 u_resolution;
+uniform float u_time;
+
+#define TAU 6.28318530718
+
+// Recursive Ray-Ascension Matrix
+// Breaks the coordinate grid into climbing steps of light that scale upward
+vec2 ascendSpace(vec2 p, float i, float t) {
+    // A slight rotation that speeds up the deeper you go into the light core
+    float angle = sin(t * 0.1) * 0.1 + (i * 0.2);
+    p = mat2(cos(angle), -sin(angle), sin(angle), cos(angle)) * p;
+    
+    // The breakthrough mechanic: Non-linear upward warping
+    // This forces the recursive layers to stretch toward the top of the screen
+    p.y -= abs(sin(p.x * 2.0 + t)) * (0.15 / i);
+    p.x += cos(p.y * 3.0 + t * 0.8) * (0.1 / i);
+    
+    return p * (1.1 + 0.05 * sin(t)); // Gentle outward expansion
+}
+
+void main() {
+    vec2 st = (gl_FragCoord.xy * 2.0 - u_resolution.xy) / u_resolution.y;
+    float t = u_time * 0.7; // Steady, forward-moving pace
+    float dCenter = length(st);
+
+    // THE MONO-SPECULAR HOPE LIGHT: Pure Dawn Gold fading to Diamond White
+    vec3 dawnGold = vec3(1.0, 0.78, 0.35);
+    vec3 whiteCore = vec3(1.0, 0.98, 0.90);
+    
+    float recursiveLight = 0.0;
+    float upwardDrive = 0.0;
+    vec2 p = st;
+
+    // Shift the baseline domain downward so the light feels like it's rising from a horizon
+    p.y += 0.2;
+
+    // 5 Iterations of recursive breakthroughs (Light fighting through structural density)
+    for(float i = 1.0; i <= 5.0; i++) {
+        p = ascendSpace(p, i, t);
+        float d = length(p);
+        
+        // Vertical ray channels (Beacons piercing through darkness)
+        float rays = smoothstep(0.04, 0.0, abs(p.x) - (0.01 * i)) * cos(p.y * 4.0 - t * i);
+        
+        // Volumetric aura that gets brighter and tighter with each recursive step
+        float aura = smoothstep(0.8 / i, 0.0, d) * (1.0 - smoothstep(0.0, 0.08, abs(p.x)));
+        
+        recursiveLight += (rays + aura) * (1.5 / i);
+        upwardDrive += (1.0 / i) * smoothstep(0.4, 0.0, length(p - vec2(0.0, 0.3)));
+    }
+
+    // THE CONTRAST RIG: Massive, empty dark vs. concentrated blinding light
+    vec3 velvetDark = vec3(0.01, 0.01, 0.015); // Pure, quiet, museum-like atmospheric dark
+    
+    // Master light composition
+    vec3 lightField = mix(dawnGold, whiteCore, smoothstep(0.5, 1.5, recursiveLight)) * recursiveLight;
+    
+    // High-energy focus point at the center of the ascent
+    vec3 spark = whiteCore * upwardDrive * (1.3 + 0.3 * sin(t * 5.0));
+
+    // Combine layers: The light cuts cleanly through the void rather than bleeding lazily
+    vec3 finalCol = mix(velvetDark, lightField, smoothstep(0.01, 0.8, recursiveLight));
+    finalCol += spark * 0.6;
+
+    // Vertical gradient bias to amplify the "rising" sensation
+    float verticalBias = smoothstep(-1.2, 0.8, st.y);
+    finalCol *= verticalBias;
+
+    // Precise architectural framing vignette
+    gl_FragColor = vec4(clamp(finalCol, 0.0, 1.0) * smoothstep(1.6, 0.4, dCenter), 1.0);
+}
+
+
+
+#ifdef GL_ES
+precision mediump float;
+#endif
+
+uniform vec2 u_resolution;
+uniform float u_time;
+
+#define TAU 6.28318530718
+
+mat2 rot(float a) { return mat2(cos(a), -sin(a), sin(a), cos(a)); }
+
+vec3 hammeredGold(vec2 uv, float brightness) {
+    float shimmer = fract(sin(dot(uv * 150.0, vec2(12.9898, 78.233))) * 43758.5453);
+    vec3 leafGold   = vec3(0.92, 0.68, 0.22);
+    vec3 polishedJewel = vec3(1.00, 0.88, 0.55);
+    vec3 deepCopper   = vec3(0.65, 0.38, 0.12);
+    
+    vec3 baseColor = mix(deepCopper, leafGold, smoothstep(0.1, 0.5, brightness));
+    baseColor = mix(baseColor, polishedJewel, smoothstep(0.5, 1.0, brightness));
+    return baseColor * (brightness + shimmer * 0.07 * step(0.1, brightness));
+}
+
+void main() {
+    vec2 st = (gl_FragCoord.xy * 2.0 - u_resolution.xy) / u_resolution.y;
+    float t = u_time * 0.7;
+    float dCenter = length(st);
+
+    // ==========================================
+    // AMBIENT BACKGROUND EFFECTS (The Museum Air)
+    // ==========================================
+    // A complex, low-frequency wave field that acts like floating silk or smoke
+    float bgWaves = sin(st.x * 3.0 + t * 0.5) * cos(st.y * 4.0 - t * 0.3);
+    // Dark, rich copper/umber ambient foundation
+    vec3 ambientAir = vec3(0.02, 0.012, 0.008) * (1.0 - dCenter * 0.6);
+    // Inject subtle volumetric light bands cutting through the room
+    ambientAir += vec3(0.85, 0.55, 0.2) * abs(bgWaves) * 0.03 * (1.0 - dCenter);
+
+    vec3 foregroundCol = vec3(0.0);
+
+    // --- Lantern Instances ---
+    for(float i = 1.0; i <= 3.0; i++) {
+        vec2 p = st - vec2((i - 2.0) * 0.65, 0.15 - i * 0.12);
+        float sway = sin(t * 1.2 + i * 2.0) * 0.06;
+        p.x += sway * (1.0 - p.y * 0.5); 
+
+        float dX = abs(p.x);
+        
+        float bodyFrame = smoothstep(0.24, 0.22, dX + abs(p.y * 0.4)) * step(abs(p.y), 0.32);
+        float endCaps   = smoothstep(0.14, 0.12, dX) * smoothstep(0.02, 0.0, abs(abs(p.y) - 0.33));
+        float hangerWire = smoothstep(0.005, 0.0, dX) * step(0.33, p.y) * exp(-p.y * 0.5);
+        
+        float lanternStructure = max(bodyFrame, endCaps);
+        float waves = sin(p.x * 60.0 + sin(p.y * 30.0)) * cos(p.y * 60.0);
+        float filigreeGrid = smoothstep(0.1, 0.3, abs(waves)) * bodyFrame;
+        
+        float breathingPulse = 0.7 + 0.3 * sin(t * 2.5 + i * TAU/3.0);
+        float coreEnergy = exp(-length(p * vec2(1.8, 1.2)) * 4.0) * breathingPulse * 2.2;
+        float wrapAura = exp(-length(p * vec2(1.2, 0.8)) * 1.8) * 0.35 * breathingPulse;
+
+        vec3 internalIllumination = hammeredGold(p, coreEnergy) * (0.2 + filigreeGrid * 0.8);
+        vec3 externalAura = vec3(0.95, 0.65, 0.25) * wrapAura;
+        vec3 solids = hammeredGold(p, 0.5) * endCaps + vec3(0.4, 0.3, 0.15) * hangerWire;
+
+        foregroundCol += (internalIllumination + externalAura) * bodyFrame + solids;
+        
+        // Let the lanterns cast a gentle, wide glow back onto the museum wall
+        ambientAir += vec3(0.9, 0.6, 0.2) * exp(-length(p) * 2.5) * 0.04 * breathingPulse;
+    }
+
+    // --- Ascending Spark Field ---
+    float tinySparks = 0.0;
+    vec2 spUV = st * vec2(4.0, 2.0);
+    spUV.y -= t * 0.8; spUV.x += sin(spUV.y * 2.0 + t) * 0.3;
+    vec2 id = floor(spUV); vec2 local = fract(spUV) - 0.5;
+    float h = fract(sin(dot(id, vec2(45.13, 92.87))) * 9437.12);
+    if(h > 0.75) {
+        tinySparks = smoothstep(0.04 * h, 0.0, length(local)) * smoothstep(-0.5, 0.8, st.y);
+    }
+    foregroundCol += hammeredGold(st, tinySparks * 0.9);
+
+    // Dynamic Master Composite
+    vec3 finalCol = ambientAir + foregroundCol;
+
+    gl_FragColor = vec4(clamp(finalCol, 0.0, 1.0) * smoothstep(1.7, 0.5, dCenter), 1.0);
+}
+Hope
+
+#ifdef GL_ES
+precision mediump float;
+#endif
+
+uniform vec2 u_resolution;
+uniform float u_time;
+
+#define TAU 6.28318530718
+
+void main() {
+    vec2 st = (gl_FragCoord.xy * 2.0 - u_resolution.xy) / u_resolution.y;
+    float t = u_time * 0.8;
+    
+    float r = length(st);
+    float a = atan(st.y, st.x);
+    
+    vec3 col = vec3(0.0);
+    float plasma = 0.0;
+
+    // 4 Layers of counter-rotating geometric fire
+    for(float i = 1.0; i <= 4.0; i++) {
+        // Offset angles and speeds per layer
+        float rotA = a + t * (mod(i, 2.0) == 0.0 ? 0.4 : -0.4) / i;
+        
+        // Sacred geometry: multiplying sine waves across the polar grid
+        float geo = sin(rotA * (4.0 * i)) * cos(rotA * 8.0);
+        
+        // Plasma ripples pulsing outward
+        float ripple = sin(r * 20.0 - t * (5.0 + i) + geo * 2.0);
+        
+        // Confine the fire to structural mandala rings
+        float ringMask = smoothstep(0.8 / i, 0.2 / i, r) * smoothstep(0.0, 0.3 / i, r);
+        
+        plasma += smoothstep(0.1, 0.0, abs(ripple)) * ringMask * (1.5 / i);
+    }
+
+    // The Phoenix Flare (Massive sweeping wings of light triggered periodically)
+    float flarePulse = pow(abs(sin(t * 1.5)), 8.0); 
+    float flareShape = smoothstep(0.4, 0.0, abs(sin(a * 2.0 + t * 2.0))) * exp(-r * 3.0);
+    plasma += flareShape * flarePulse * 3.0;
+
+    // Heat-based color mapping: Deep crimson -> Core Amber -> Blinding White
+    vec3 darkRed = vec3(0.4, 0.05, 0.02);
+    vec3 brightGold = vec3(1.0, 0.7, 0.1);
+    vec3 coreWhite = vec3(1.0, 0.95, 0.9);
+    
+    col = mix(darkRed, brightGold, smoothstep(0.0, 0.6, plasma));
+    col = mix(col, coreWhite, smoothstep(0.8, 1.5, plasma));
+
+    // Master glow and vignette
+    col *= (1.2 - r * 0.5);
+    gl_FragColor = vec4(clamp(col, 0.0, 1.0), 1.0);
+}
+
+
+Hope 
+
+#ifdef GL_ES
+precision mediump float;
+#endif
+
+uniform vec2 u_resolution;
+uniform float u_time;
+
+void main() {
+    vec2 st = (gl_FragCoord.xy * 2.0 - u_resolution.xy) / u_resolution.y;
+    float t = u_time * 2.0; // Fast forward momentum
+    
+    // Add an artificial horizon line and pitch the camera slightly
+    vec2 p = st;
+    p.y += 0.2; 
+    
+    // Pseudo-3D Perspective Math: Divide the X coordinate by the absolute Y coordinate.
+    // This stretches the space outward at the bottom, creating a floor.
+    float depth = 1.0 / abs(p.y + 0.01); // Add 0.01 to prevent dividing by absolute zero
+    vec2 floorUV = vec2(p.x * depth, depth);
+    
+    // Move the floor forward over time
+    floorUV.y -= t; 
+
+    vec3 col = vec3(0.01, 0.005, 0.02); // Dark night sky
+
+    if (p.y < 0.0) {
+        // --- THE GLOWING RIVER (Below the Horizon) ---
+        // Flowing, intersecting ribbon currents representing the feather boats/kites
+        float currents = sin(floorUV.x * 10.0 + sin(floorUV.y * 2.0)) * cos(floorUV.x * 5.0 - t);
+        float riverGlow = smoothstep(0.3, 0.0, abs(currents));
+        
+        // Attenuate the light into the distance
+        vec3 riverCol = vec3(0.9, 0.6, 0.2) * riverGlow * exp(-depth * 0.15);
+        col = mix(col, riverCol, 0.8);
+    } else {
+        // --- THE GOLDEN BAMBOO FOREST (Above the Horizon) ---
+        // Convert the floor coordinates back into vertical columns
+        float stalkId = floor(floorUV.x * 3.0);
+        float localX = fract(floorUV.x * 3.0) - 0.5;
+        
+        // Bamboo stalk thickness and segment joints
+        float stalkWidth = 0.15 + 0.05 * sin(stalkId * 43.12);
+        float bambooBody = smoothstep(stalkWidth, stalkWidth - 0.05, abs(localX));
+        
+        // Horizontal bamboo joints moving toward the camera
+        float joints = smoothstep(0.05, 0.0, abs(fract(floorUV.y * 4.0) - 0.5));
+        
+        float bambooMask = bambooBody * (0.8 + 0.4 * joints);
+        
+        // Deep gold lighting with heavy distance shadows
+        vec3 bambooCol = vec3(0.8, 0.6, 0.1) * bambooMask;
+        bambooCol *= exp(-depth * 0.2); // Fades into pitch black in the distance
+        
+        col = mix(col, bambooCol, bambooBody);
+    }
+
+    // High-speed motion blur / god-ray overlay cutting horizontally across the screen
+    float godRays = smoothstep(0.1, 0.0, abs(sin(st.y * 15.0 + t * 5.0))) * exp(-abs(st.x) * 2.0);
+    col += vec3(1.0, 0.8, 0.4) * godRays * 0.15;
+
+    gl_FragColor = vec4(clamp(col, 0.0, 1.0) * smoothstep(1.5, 0.3, length(st)), 1.0);
+}
+
+#ifdef GL_ES
+precision mediump float;
+#endif
+
+uniform vec2 u_resolution;
+uniform float u_time;
+
+// Snap coordinates to a low-res pixel grid
+vec2 pixelate(vec2 uv, float res) {
+    return floor(uv * res) / res;
+}
+
+void main() {
+    // 64x64 virtual pixel grid for a "story-book" look
+    vec2 st = pixelate((gl_FragCoord.xy * 2.0 - u_resolution.xy) / u_resolution.y, 64.0);
+    float t = mod(u_time * 0.5, 4.0); // 4-second growth cycle
+
+    vec3 col = vec3(0.02, 0.01, 0.03); // Deep night background
+
+    // The Seed (A single pixel core)
+    float d = length(st);
+    float bloom = smoothstep(0.1 + t, 0.05 + t, d);
+    
+    // Recursive "Petals" - snapping to grid angles
+    float angle = atan(st.y, st.x);
+    float petals = sin(angle * 6.0 + t * 4.0);
+    
+    // Bloom Effect: The light bleeds into neighboring pixels
+    float light = bloom * (0.5 + 0.5 * petals);
+    
+    // Coloring: Deep amber shifting to brilliant white-gold
+    vec3 bloomCol = mix(vec3(0.9, 0.4, 0.1), vec3(1.0, 0.9, 0.7), light);
+    
+    // Add "Pixel Bloom" glow: If it's bright, make surrounding pixels bright too
+    col = mix(col, bloomCol, light);
+
+    gl_FragColor = vec4(col, 1.0);
+}
+
+#ifdef GL_ES
+precision mediump float;
+#endif
+
+uniform vec2 u_resolution;
+uniform float u_time;
+
+void main() {
+    // Low-res grid
+    vec2 st = (gl_FragCoord.xy * 2.0 - u_resolution.xy) / u_resolution.y;
+    vec2 gridST = floor(st * 40.0) / 40.0;
+    float t = floor(u_time * 2.0); // Step-time (moves 2 times per second)
+
+    vec3 col = vec3(0.01, 0.01, 0.02);
+
+    // Kites (Grid-snapped objects)
+    vec2 kitePos = vec2(sin(t * 0.5) * 0.5, -0.5 + fract(t * 0.2) * 1.5);
+    float dist = length(gridST - kitePos);
+    
+    // Drawing a simple pixel-kite silhouette
+    if (dist < 0.1) {
+        col = vec3(0.95, 0.7, 0.2); // Golden Kite
+    }
+
+    // Floating pixel dust (The "Storybook" atmosphere)
+    float dust = fract(sin(dot(gridST, vec2(12.9, 78.2))) * 43758.5);
+    if (dust > 0.98) {
+        col += vec3(1.0, 0.9, 0.6) * sin(u_time * 5.0);
+    }
+
+    gl_FragColor = vec4(col, 1.0);
+}
+
+Hope: #ifdef GL_ES
+precision mediump float;
+#endif
+
+uniform vec2 u_resolution;
+uniform float u_time;
+
+// High-contrast, sharp color cycle
+vec3 getGoldPalette(float t) {
+    vec3 a = vec3(0.05, 0.02, 0.01);
+    vec3 b = vec3(0.9, 0.6, 0.2); // Saturated gold/amber
+    vec3 c = vec3(1.0, 0.95, 0.8); // Near-white highlight
+    
+    // Using a steeper curve for sharper color transitions
+    return a + b * cos(6.28318 * (t + vec3(0.0, 0.1, 0.2)));
+}
+
+void main() {
+    vec2 st = (gl_FragCoord.xy * 2.0 - u_resolution.xy) / u_resolution.y;
+    
+    // 1. SHARPENED REVERB
+    // We use a higher frequency and "staircase" the math to kill the blur
+    float wave = sin(st.x * 4.0 + u_time) * cos(st.y * 4.0 - u_time);
+    
+    // "Quantize" the wave: This snaps the colors to specific bands
+    // instead of a smooth blur, creating a "stained-glass" effect
+    float sharpWave = floor(wave * 5.0) / 5.0; 
+    
+    // 2. DYNAMIC COLOR PLAY
+    // We sample the palette using the sharpWave to ensure crisp color separation
+    vec3 col = getGoldPalette(u_time * 0.15 + sharpWave * 0.5);
+    
+    // 3. SHARP PIXEL GRIT
+    // Remove the blurry hash. We use a high-contrast threshold for the grit
+    float grain = fract(sin(dot(st, vec2(12.9898, 78.233))) * 43758.5453);
+    float bloom = (grain > 0.985) ? 1.0 : 0.0;
+    
+    // Add the bloom as sharp, crisp sparkles
+    col += bloom;
+
+    gl_FragColor = vec4(col, 1.0);
+}
+
+Hope: #ifdef GL_ES
+precision mediump float;
+#endif
+
+uniform vec2 u_resolution;
+uniform float u_time;
+
+// Softer Hope Palette
+const vec3 C0 = vec3(0.46, 0.36, 0.28); // Shadow
+const vec3 C1 = vec3(0.62, 0.50, 0.39); // Base
+const vec3 C2 = vec3(0.76, 0.65, 0.52); // Warm Sand
+const vec3 C3 = vec3(0.86, 0.78, 0.66); // Paper Wash
+const vec3 C4 = vec3(0.92, 0.86, 0.70); // Soft Moon
+const vec3 C5 = vec3(0.58, 0.68, 0.76); // Muted Sky
+const vec3 C6 = vec3(0.70, 0.76, 0.71); // Sage Mist
+
+vec3 getHopeColor(float i) {
+    float idx = mod(floor(i), 7.0);
+
+    if(idx == 0.0) return C0;
+    if(idx == 1.0) return C1;
+    if(idx == 2.0) return C2;
+    if(idx == 3.0) return C3;
+    if(idx == 4.0) return C4;
+    if(idx == 5.0) return C5;
+
+    return C6;
+}
+
+void main() {
+
+    vec2 st =
+        (gl_FragCoord.xy * 2.0 - u_resolution.xy)
+        / u_resolution.y;
+
+    //------------------------------------
+    // Slower kinetic flow
+    //------------------------------------
+
+    float t = u_time * 0.25;
+
+    float v =
+        sin(st.x * 1.6 + t)
+        +
+        cos(st.y * 1.8 + t * 0.55);
+
+    //------------------------------------
+    // Softer quantisation
+    //------------------------------------
+
+    float intensity =
+        floor((v + 2.0) * 1.25);
+
+    //------------------------------------
+    // Slower colour evolution
+    //------------------------------------
+
+    vec3 col =
+        getHopeColor(
+            intensity
+            +
+            u_time * 0.18
+        );
+
+    //------------------------------------
+    // Gentle moonlit centre
+    //------------------------------------
+
+    float glow =
+        exp(
+            -length(st * vec2(1.0, 0.85))
+            * 1.4
+        );
+
+    col =
+        mix(
+            col,
+            C4,
+            glow * 0.12
+        );
+
+    //------------------------------------
+    // Very soft vignette
+    //------------------------------------
+
+    float vignette =
+        smoothstep(
+            1.6,
+            0.35,
+            length(st)
+        );
+
+    col *= vignette;
+
+    gl_FragColor = vec4(col, 1.0);
+}
+
+Hope
+
+#ifdef GL_ES
+precision mediump float;
+#endif
+​
+uniform vec2 u_resolution;
+uniform float u_time;
+​
+#define VOID  vec3(0.05, 0.02, 0.01)
+#define GOLD  vec3(1.5, 0.9, 0.4)
+#define LIGHT vec3(0.65, 0.92, 0.81)
+#define MIST  vec3(0.70, 0.76, 1.10)
+​
+void main() {
+    vec2 st = (gl_FragCoord.xy * 2.0 - u_resolution.xy) / u_resolution.y;
+​
+    float t = u_time * 1.1;
+​
+    float r = length(st);
+    float a = atan(st.y, st.x);
+​
+    // spiral field fills the whole surrounding area
+    float spiral = sin(a * 4.0 + log(r + 0.08) * 5.0 - t);
+    spiral = 0.5 + 0.5 * spiral;
+​
+    // secondary wider spiral so it does not feel empty
+    float wide = sin(a * 2.0 - log(r + 0.12) * 3.0 + t * 0.55);
+    wide = 0.5 + 0.5 * wide;
+​
+    // soft outer presence instead of disappearing
+    float presence = 1.0 - smoothstep(1.35, 2.1, r);
+​
+    vec3 col = VOID;
+​
+    col = mix(col, GOLD, spiral * 0.42 * presence);
+    col = mix(col, MIST, wide * 0.18 * presence);
+    col += LIGHT * pow(spiral, 3.0) * 0.18 * presence;
+​
+    // centre glow
+    col += LIGHT * exp(-r * 3.2) * 0.18;
+​
+    // gentle vignette, not too strong
+    col *= smoothstep(2.0, 0.15, r);
+​
+    gl_FragColor = vec4(clamp(col, 0.0, 1.0), 1.0);
+}
+
+Hope. 
+
+#ifdef GL_ES
+precision mediump float;
+#endif
+
+uniform vec2 u_resolution;
+uniform float u_time;
+
+// Palette: Moon and Sky
+#define MOON vec3(0.95, 0.92, 0.81)
+#define SKY  vec3(0.74, 0.84, 0.96)
+
+void main() {
+    vec2 st = (gl_FragCoord.xy * 2.0 - u_resolution.xy) / u_resolution.y;
+    
+    // INCREASED SPEED: Multipliers increased from 0.5/0.3 to 1.2/0.9
+    float x = sin(u_time * 1.2) * cos(st.y * 3.0);
+    float y = cos(u_time * 0.9) * sin(st.x * 3.0);
+    
+    // Distance to the curve
+    float d = abs(x + y);
+    
+    // Thin "Golden Wire" look
+    float line = smoothstep(0.05, 0.02, d);
+    
+    vec3 col = mix(vec3(0.0), MOON, line);
+    col += mix(vec3(0.0), SKY, line * 0.5);
+
+    gl_FragColor = vec4(col, 1.0);
+}
+
+
+#ifdef GL_ES
+precision mediump float;
+#endif
+
+uniform vec2 u_resolution;
+uniform float u_time;
+
+#define VOID vec3(0.02, 0.01, 0.01)
+#define GOLD vec3(0.84, 0.70, 0.56)
+#define LIGHT vec3(0.95, 0.92, 0.81)
+
+// Coarse grain generator
+float hash(vec2 p) {
+    vec2 c = floor(p * 150.0);
+    return fract(sin(dot(c, vec2(12.9898, 78.233))) * 43758.5453);
+}
+
+// Organic crane silhouette
+float craneShape(vec2 p) {
+    // LOWERED: Changed p.y -= 0.1 to p.y += 0.2 to shift the shape down
+    p.y += 0.2; 
+    
+    float body = length(p * vec2(1.2, 2.0)) - 0.15;
+    float wingAngle = atan(p.y, abs(p.x) - 0.2);
+    float wings = length(p - vec2(0.0, 0.1)) - (0.4 + 0.15 * sin(wingAngle * 2.0));
+    float neck = length(p - vec2(0.1, 0.3)) - 0.08;
+    return min(body, min(wings, neck));
+}
+
+void main() {
+    vec2 st = (gl_FragCoord.xy * 2.0 - u_resolution.xy) / u_resolution.y;
+    
+    // 1. INCREASED SPEED: Multiplied time by 1.5 for a faster, more active pulse
+    float pulse = sin(u_time * 1.2) * 0.15 + 0.85;
+    
+    // 2. SHAPE & GLOW
+    float d = craneShape(st);
+    float crane = 1.0 - smoothstep(0.0, 0.03, d);
+    float glow = (0.08 / (d + 0.05)) * pulse;
+    
+    // 3. TEXTURE (Coarse Grain)
+    float grain = (hash(st + fract(u_time * 0.2)) - 0.5) * 0.1;
+    
+    // 4. FINAL COMPOSITION
+    vec3 col = VOID;
+    col = mix(col, GOLD * pulse, crane);
+    col += LIGHT * glow; // Golden halo
+    col += grain;        // Physical texture
+
+    gl_FragColor = vec4(col, 1.0);
+}
+
+#ifdef GL_ES
+precision mediump float;
+#endif
+
+uniform vec2 u_resolution;
+uniform float u_time;
+
+#define VOID vec3(0.02, 0.01, 0.01)
+#define GOLD vec3(0.84, 0.70, 0.56)
+#define LIGHT vec3(0.95, 0.92, 0.81)
+
+float hash(vec2 p) {
+    return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.5453);
+}
+
+void main() {
+    vec2 st = (gl_FragCoord.xy * 2.0 - u_resolution.xy) / u_resolution.y;
+    
+    // 1. DYNAMIC COORDINATE OFFSET (The "Motion")
+    // We add a subtle drift so the crane isn't "stuck" in the center
+    vec2 pos = st + vec2(0.0, 0.25); // Lowered baseline
+    pos.x += sin(u_time * 0.5) * 0.05; // Gentle sway
+    
+    // 2. ORGANIC CRANE SILHOUETTE (Movement-Reactive)
+    // The shape itself flexes slightly with time
+    float flex = sin(u_time * 1.5) * 0.02;
+    float body = length(pos * vec2(1.2, 2.0)) - (0.15 + flex);
+    float wingAngle = atan(pos.y, abs(pos.x) - 0.2);
+    float wings = length(pos - vec2(0.0, 0.1)) - (0.4 + 0.1 * sin(wingAngle * 2.0 + u_time));
+    float neck = length(pos - vec2(0.1, 0.3)) - 0.08;
+    float d = min(body, min(wings, neck));
+    
+    // 3. RENDERED MOTION
+    float crane = 1.0 - smoothstep(0.0, 0.02, d);
+    float glow = (0.06 / (d + 0.04)) * (sin(u_time * 1.5) * 0.1 + 0.9);
+    
+    // 4. COARSE GRAIN (Shader-space)
+    float grain = (hash(st * 150.0 + fract(u_time * 0.2)) - 0.5) * 0.12;
+    
+    vec3 col = VOID;
+    col = mix(col, GOLD, crane);
+    col += LIGHT * glow;
+    col += grain;
+
+    gl_FragColor = vec4(col, 1.0);
+}
+
+Hope 
+
+#ifdef GL_ES
+precision mediump float;
+#endif
+
+uniform vec2 u_resolution;
+uniform float u_time;
+
+#define COLOR_A vec3(0.56, 0.67, 0.63) // Sage
+#define COLOR_B vec3(0.95, 0.70, 0.40) // Amber
+#define COLOR_C vec3(0.70, 0.50, 0.90) // Lavender
+
+void main() {
+    // Zoomed out further to increase filament density
+    vec2 st = (gl_FragCoord.xy * 2.5 - u_resolution.xy) / u_resolution.y;
+    st.x *= 12.0; // Increased count: more filaments for a tighter mesh
+    
+    float lineIndex = floor(st.x / 0.4); // Narrower spacing for mesh effect
+    st.x = mod(st.x, 0.4) - 0.2;
+    
+    // Sway motion (overlapping waves create the 'mesh' weave)
+    st.x += sin(st.y * 2.0 + u_time * 2.5 + lineIndex * 0.8) * 0.3;
+    
+    // DYNAMIC COLOR SWAP
+    float timeShift = floor(u_time * 0.5);
+    float colorID = mod(lineIndex + timeShift, 3.0);
+    vec3 currentColor = (colorID < 1.0) ? COLOR_A : (colorID < 2.0) ? COLOR_B : COLOR_C;
+    
+    // MESH THICKNESS: 
+    // Reduced core size (0.005) and softened falloff for a web-like look
+    float dist = abs(st.x) - 0.005;
+    float glow = 0.008 / abs(dist + 0.01);
+    
+    // Vignette
+    float edgeFade = smoothstep(3.0, 1.5, abs(st.x * 4.0));
+    
+    gl_FragColor = vec4(currentColor * glow * edgeFade, 1.0);
+}
+
+Hope
+
+#ifdef GL_ES
+precision mediump float;
+#endif
+
+uniform vec2 u_resolution;
+uniform float u_time;
+
+// Hope Palette: Grounded earth (Becoming) + Luminous warmth (Possibility)
+#define COLOR_DARK  vec3(0.08, 0.05, 0.05)
+#define COLOR_MID   vec3(0.55, 0.25, 0.15)
+#define COLOR_LIGHT vec3(0.98, 0.75, 0.45)
+
+void main() {
+    vec2 st = gl_FragCoord.xy / u_resolution.xy;
+    st.x -= 0.5; // Center the flow
+    
+    // 1. MOTION PRINCIPLE: RISING & CONTINUING
+    // A vertical field that accelerates as it rises (u_time * 0.5)
+    float t = u_time * 0.5;
+    float rise = fract(st.y + t); // The 'Continuing' loop
+    
+    // 2. GATHERING: Using noise to cluster light into 'threads'
+    // This creates the feeling of disparate parts coming together
+    float n = sin(st.x * 10.0 + sin(t) * 2.0) * 0.5 + 0.5;
+    
+    // 3. EMERGENCE (The Seed Crack): Light clusters appearing in the flow
+    float bloom = smoothstep(0.8, 1.0, n) * smoothstep(0.1, 0.3, rise);
+    
+    // Apply atmospheric gradients
+    vec3 col = mix(COLOR_DARK, COLOR_MID, st.y);
+    col = mix(col, COLOR_LIGHT, bloom * 1.5);
+    
+    // Grainy texture for human/organic touch
+    float grain = (fract(sin(dot(gl_FragCoord.xy, vec2(12.9898, 78.233))) * 43758.5453) - 0.5) * 0.08;
+    
+    gl_FragColor = vec4(col + grain, 1.0);
+}
+
+Becoming. 
+
+#ifdef GL_ES
+precision mediump float;
+#endif
+
+uniform vec2 u_resolution;
+uniform float u_time;
+
+// Harmonized "Hope" Palette
+#define COLOR_GOLD vec3(0.98, 0.75, 0.40)
+#define COLOR_DEEP vec3(0.08, 0.02, 0.01)
+
+void main() {
+    vec2 st = (gl_FragCoord.xy * 2.0 - u_resolution.xy) / min(u_resolution.x, u_resolution.y);
+    
+    // 1. BECOMING: The field is never still, it is always iterating
+    // We combine polar coordinates with a time-based 'drift'
+    float r = length(st);
+    float a = atan(st.y, st.x) + sin(r * 2.0 - u_time * 0.2) * 0.5;
+    
+    // 2. FORMATION: Multi-layered spirals that 'grow'
+    float layer1 = sin(a * 3.0 + r * 5.0 - u_time * 0.5);
+    float layer2 = sin(a * 4.0 - r * 8.0 + u_time * 0.3);
+    float shape = smoothstep(0.0, 0.5, layer1 * layer2);
+    
+    // 3. CONTINUATION: The light bleeds into the void
+    vec3 col = mix(COLOR_DEEP, COLOR_GOLD, shape * (1.0 - r));
+    
+    // Final polish: Grainy 'Hope' texture
+    float grain = (fract(sin(dot(gl_FragCoord.xy, vec2(12.98, 78.23))) * 43758.54) - 0.5) * 0.04;
+    
+    gl_FragColor = vec4(col + grain, 1.0);
+}
+
+More: 
+
+ifdef GL_ES
+precision mediump float;
+#endif
+​
+uniform vec2 u_resolution;
+uniform float u_time;
+​
+// Professional Color Palette: Deep Plum to Burnt Amber to Champagne Gold
+vec3 hsl2rgb(vec3 c) {
+    vec3 rgb = clamp(abs(mod(c.x*6.0+vec3(0.0,4.0,2.0),6.0)-3.0)-1.0, 0.0, 1.0);
+    return c.z + c.y * (rgb-0.88)*(1.9 -abs(4.0*c.z-1.0));
+}
+​
+mat2 rot(float a) {
+    float s = sin(a), c = cos(a);
+    return mat2(c, -s, s, c);
+}
+​
+void main() {
+    vec2 st = (gl_FragCoord.xy * 2.0 - u_resolution.xy) / min(u_resolution.x, u_resolution.y);
+    vec3 p = vec3(st, 1.3);
+    
+    p.xy *= rot(u_time * 0.1);
+    
+    // Geometric structural iteration
+    float d = 1.0;
+    for(int i = 0; i < 3; i++) {
+        p = abs(p) / dot(p, p) - 0.7;
+        p.xy *= rot(u_time * 0.1 + float(i));
+        d = min(d, length(p.xy) - 0.2); // Tighter constraint
+    }
+    
+    // SHARPNESS FIX: 
+    // Using a steeper falloff (exp) instead of division
+    // This creates a crisp 'core' and a gentle 'bloom'
+    float light = exp(-20.0 * d); 
+    
+    // Dynamic color cycle
+    float hue = fract(u_time * 0.03);
+    vec3 colorBase = hsl2rgb(vec3(hue, 0.7, 0.05));
+    vec3 colorHigh = hsl2rgb(vec3(hue + 0.1, 0.8, 0.7));
+    
+    vec3 col = mix(colorBase, colorHigh, light);
+    
+    // Add 'Focus' layer: Increasing contrast to remove the blur
+    col = smoothstep(0.6, 0.05, col);
+    
+    // Texture: High-frequency grain to provide tactile 'grip' for the eye
+    float grain = (fract(sin(dot(gl_FragCoord.xy, vec2(80.98, 78.23))) * 78758.54) - 0.5) * 0.05;
+    col += grain;
+    
+    gl_FragColor = vec4(col, 1.0);
+}
+​
+
+This is a Fluid design — generative WebGL art from https://fluid.krackeddevs.com.
+Engine: Truchet  ·  Palette: SUNSET  ·  Aspect: 1:1
+Surface: Hex, pixelate 47
+Zoom 1.50  ·  Warp 0.8  ·  Speed 2.90  ·  Grain 0.060  ·  Seed 18
+Open / remix: https://fluid.krackeddevs.com/#p=2.9,1.5,0.8,0.06,47,10,1,1,18,0,0,1,0,0,4,1
+With the Fluid MCP, call decode_link on that URL to load it exactly; otherwise recreate it with create_piece using the values above.
+
+This is a Fluid design — generative WebGL art from https://fluid.krackeddevs.com.
+Engine: Truchet  ·  Palette: SUNSET  ·  Aspect: 1:1
+Surface: Square + halftone, pixelate 47
+Zoom 1.25  ·  Warp 1.5  ·  Speed 0.95  ·  Grain 0.135  ·  Seed 18
+Open / remix: https://fluid.krackeddevs.com/#p=0.95,1.25,1.5,0.135,47,10,1,1,18,0,0,1,0,0,4
+With the Fluid MCP, call decode_link on that URL to load it exactly; otherwise recreate it with create_piece using the values above.

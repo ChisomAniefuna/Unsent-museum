@@ -1,0 +1,503 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Pixel Sadness</title>
+    <style>
+      * {
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        width: 100%;
+        min-height: 100%;
+      }
+
+      body {
+        margin: 0;
+        overflow: hidden;
+        background:
+          radial-gradient(circle at 50% 32%, rgba(58, 67, 92, 0.2), transparent 28rem),
+          radial-gradient(circle at 50% 74%, rgba(11, 18, 30, 0.9), transparent 34rem),
+          #05070c;
+        font-family: Arial, Helvetica, sans-serif;
+      }
+
+      main {
+        position: relative;
+        width: 100vw;
+        height: 100svh;
+        isolation: isolate;
+      }
+
+      canvas {
+        position: absolute;
+        inset: 0;
+        display: block;
+        width: 100%;
+        height: 100%;
+        cursor: crosshair;
+        touch-action: none;
+      }
+
+      .fallback {
+        position: fixed;
+        right: 1rem;
+        bottom: 1rem;
+        left: 1rem;
+        z-index: 2;
+        margin: 0;
+        padding: 0.75rem 1rem;
+        border: 1px solid rgba(255, 255, 255, 0.18);
+        background: rgba(0, 0, 0, 0.78);
+        color: #ffffff;
+        font-size: 0.95rem;
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        canvas {
+          cursor: default;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main aria-label="Interactive pixel portrait of sadness">
+      <canvas id="sadness-canvas"></canvas>
+      <noscript>
+        <p class="fallback">JavaScript is required for the animation.</p>
+      </noscript>
+    </main>
+
+    <script>
+      const canvas = document.querySelector("#sadness-canvas");
+      const ctx = canvas.getContext("2d", { willReadFrequently: true });
+      const image = new Image();
+
+      const settings = {
+        imageSrc: "sadness-heads.png",
+        desktopPixelSize: 9,
+        mobilePixelSize: 10,
+        pixelGap: 1,
+        imageScaleDesktop: 0.84,
+        imageScaleMobile: 0.94,
+        imageCenterXDesktop: 0.5,
+        imageCenterXMobile: 0.5,
+        imageCenterYDesktop: 0.55,
+        imageCenterYMobile: 0.56,
+        hoverRadiusDesktop: 150,
+        hoverRadiusMobile: 100,
+        pushStrengthDesktop: 70,
+        pushStrengthMobile: 48,
+        sadnessSpeed: 0.92,
+        fluid: {
+          speed: 1.25,
+          zoom: 1.55,
+          warp: 5,
+          grain: 0.03,
+          pixelate: 47,
+          seed: 30,
+          colorMix: 0.88,
+        },
+      };
+
+      const asciiRamp = " .,:;irsXA253hMHGS#9B&@";
+
+      const auroraPalette = [
+        [10, 18, 55],
+        [24, 63, 139],
+        [31, 174, 184],
+        [102, 230, 157],
+        [245, 221, 98],
+        [255, 126, 136],
+        [126, 74, 221],
+      ];
+
+      const headRegions = [
+        { cx: 0.27, cy: 0.25, rx: 0.2, ry: 0.23, delay: 0.0, weight: 1.0 },
+        { cx: 0.5, cy: 0.36, rx: 0.2, ry: 0.26, delay: 0.18, weight: 1.0 },
+        { cx: 0.71, cy: 0.23, rx: 0.19, ry: 0.24, delay: 0.36, weight: 0.98 },
+        { cx: 0.25, cy: 0.48, rx: 0.17, ry: 0.17, delay: 0.54, weight: 0.82 },
+        { cx: 0.77, cy: 0.45, rx: 0.18, ry: 0.18, delay: 0.72, weight: 0.82 },
+      ];
+
+      const state = {
+        width: 0,
+        height: 0,
+        dpr: 1,
+        particles: [],
+        pointer: {
+          x: 0,
+          y: 0,
+          active: false,
+        },
+      };
+
+      const prefersReducedMotion = window.matchMedia(
+        "(prefers-reduced-motion: reduce)",
+      ).matches;
+
+      image.decoding = "async";
+      image.src = settings.imageSrc;
+
+      function getResponsiveSettings() {
+        const mobile = window.innerWidth < 760;
+
+        return {
+          pixelSize: mobile ? settings.mobilePixelSize : settings.desktopPixelSize,
+          pixelGap: settings.pixelGap,
+          imageScale: mobile
+            ? settings.imageScaleMobile
+            : settings.imageScaleDesktop,
+          imageCenterX: mobile
+            ? settings.imageCenterXMobile
+            : settings.imageCenterXDesktop,
+          imageCenterY: mobile
+            ? settings.imageCenterYMobile
+            : settings.imageCenterYDesktop,
+          hoverRadius: mobile
+            ? settings.hoverRadiusMobile
+            : settings.hoverRadiusDesktop,
+          pushStrength: mobile
+            ? settings.pushStrengthMobile
+            : settings.pushStrengthDesktop,
+        };
+      }
+
+      function resizeCanvas() {
+        const rect = canvas.getBoundingClientRect();
+
+        state.width = rect.width;
+        state.height = rect.height;
+        state.dpr = Math.min(window.devicePixelRatio || 1, 2);
+
+        canvas.width = Math.round(state.width * state.dpr);
+        canvas.height = Math.round(state.height * state.dpr);
+        ctx.setTransform(state.dpr, 0, 0, state.dpr, 0, 0);
+      }
+
+      function createCanvas(width, height) {
+        if ("OffscreenCanvas" in window) {
+          return new OffscreenCanvas(width, height);
+        }
+
+        const fallbackCanvas = document.createElement("canvas");
+        fallbackCanvas.width = width;
+        fallbackCanvas.height = height;
+        return fallbackCanvas;
+      }
+
+      function clamp01(value) {
+        return Math.max(0, Math.min(1, value));
+      }
+
+      function smoothstep(edge0, edge1, value) {
+        const amount = clamp01((value - edge0) / (edge1 - edge0));
+        return amount * amount * (3 - 2 * amount);
+      }
+
+      function hash2(x, y, seed) {
+        const value = Math.sin(x * 127.1 + y * 311.7 + seed * 74.7) * 43758.5453;
+        return value - Math.floor(value);
+      }
+
+      function mixChannel(a, b, amount) {
+        return Math.round(a + (b - a) * amount);
+      }
+
+      function paletteAt(amount) {
+        const wrapped = ((amount % 1) + 1) % 1;
+        const scaled = wrapped * auroraPalette.length;
+        const index = Math.floor(scaled) % auroraPalette.length;
+        const nextIndex = (index + 1) % auroraPalette.length;
+        const blend = smoothstep(0, 1, scaled - index);
+        const current = auroraPalette[index];
+        const next = auroraPalette[nextIndex];
+
+        return [
+          mixChannel(current[0], next[0], blend),
+          mixChannel(current[1], next[1], blend),
+          mixChannel(current[2], next[2], blend),
+        ];
+      }
+
+      function getHeadInfluence(nx, ny) {
+        let best = null;
+        let bestInfluence = 0;
+
+        for (let index = 0; index < headRegions.length; index += 1) {
+          const region = headRegions[index];
+          const dx = (nx - region.cx) / region.rx;
+          const dy = (ny - region.cy) / region.ry;
+          const distance = Math.sqrt(dx * dx + dy * dy);
+          const influence = smoothstep(1, 0.22, distance) * region.weight;
+
+          if (influence > bestInfluence) {
+            bestInfluence = influence;
+            best = {
+              index,
+              region,
+              influence,
+              localX: dx,
+              localY: dy,
+            };
+          }
+        }
+
+        return best;
+      }
+
+      function buildParticles() {
+        const responsive = getResponsiveSettings();
+        resizeCanvas();
+        state.particles = [];
+
+        const maxImageWidth = state.width * responsive.imageScale;
+        const maxImageHeight = state.height * responsive.imageScale;
+        const imageScale = Math.min(
+          maxImageWidth / image.naturalWidth,
+          maxImageHeight / image.naturalHeight,
+        );
+        const renderWidth = image.naturalWidth * imageScale;
+        const renderHeight = image.naturalHeight * imageScale;
+        const left = state.width * responsive.imageCenterX - renderWidth / 2;
+        const top = state.height * responsive.imageCenterY - renderHeight / 2;
+        const sampleWidth = Math.max(
+          1,
+          Math.floor(renderWidth / responsive.pixelSize),
+        );
+        const sampleHeight = Math.max(
+          1,
+          Math.floor(renderHeight / responsive.pixelSize),
+        );
+        const cellWidth = renderWidth / sampleWidth;
+        const cellHeight = renderHeight / sampleHeight;
+        const particleSize = Math.max(
+          1,
+          Math.min(cellWidth, cellHeight) - responsive.pixelGap,
+        );
+        const sampler = createCanvas(sampleWidth, sampleHeight);
+        const samplerCtx = sampler.getContext("2d", {
+          willReadFrequently: true,
+        });
+
+        samplerCtx.clearRect(0, 0, sampleWidth, sampleHeight);
+        samplerCtx.drawImage(image, 0, 0, sampleWidth, sampleHeight);
+
+        const pixels = samplerCtx.getImageData(
+          0,
+          0,
+          sampleWidth,
+          sampleHeight,
+        ).data;
+
+        for (let y = 0; y < sampleHeight; y += 1) {
+          for (let x = 0; x < sampleWidth; x += 1) {
+            const index = (y * sampleWidth + x) * 4;
+            const red = pixels[index];
+            const green = pixels[index + 1];
+            const blue = pixels[index + 2];
+            const alpha = pixels[index + 3];
+
+            if (alpha < 45) {
+              continue;
+            }
+
+            const nx = x / Math.max(1, sampleWidth - 1);
+            const ny = y / Math.max(1, sampleHeight - 1);
+            const homeX = left + x * cellWidth;
+            const homeY = top + y * cellHeight;
+            const head = getHeadInfluence(nx, ny);
+
+            state.particles.push({
+              x: homeX,
+              y: homeY,
+              homeX,
+              homeY,
+              nx,
+              ny,
+              size: particleSize,
+              alpha: alpha / 255,
+              color: `rgb(${red}, ${green}, ${blue})`,
+              red,
+              green,
+              blue,
+              luma: (red * 0.299 + green * 0.587 + blue * 0.114) / 255,
+              glyph:
+                asciiRamp[
+                  Math.min(
+                    asciiRamp.length - 1,
+                    Math.floor(
+                      ((red * 0.299 + green * 0.587 + blue * 0.114) / 255) *
+                        (asciiRamp.length - 1),
+                    ),
+                  )
+                ],
+              headIndex: head ? head.index : -1,
+              headInfluence: head ? head.influence : 0,
+              headDelay: head ? head.region.delay : 0,
+              headLocalX: head ? head.localX : 0,
+              headLocalY: head ? head.localY : 0,
+              phase: Math.random() * Math.PI * 2,
+              speed: 0.075 + Math.random() * 0.045,
+            });
+          }
+        }
+      }
+
+      function getSadMotion(particle, time) {
+        if (particle.headIndex < 0 || prefersReducedMotion) {
+          return { x: 0, y: 0 };
+        }
+
+        const seconds = time * 0.001 * settings.sadnessSpeed;
+        const cycle = (seconds * 0.36 - particle.headDelay + 1) % 1;
+        const bow = Math.sin(cycle * Math.PI);
+        const pause =
+          smoothstep(0.06, 0.24, cycle) * (1 - smoothstep(0.7, 0.96, cycle));
+        const breath = Math.sin(seconds * 1.35 + particle.headIndex * 1.7) * 0.35;
+        const influence = particle.headInfluence;
+        const side =
+          particle.headIndex === 0 || particle.headIndex === 3
+            ? -1
+            : particle.headIndex === 2 || particle.headIndex === 4
+              ? 1
+              : 0;
+        const tiltDirection = particle.headIndex % 2 === 0 ? 1 : -1;
+        const tilt = particle.headLocalX * tiltDirection * bow * pause;
+        const browSink = Math.max(0, -particle.headLocalY) * bow * pause;
+
+        return {
+          x: influence * (side * bow * 9 + tilt * 9 + breath * 2.5),
+          y: influence * (bow * pause * 34 + browSink * 7 + 2.5 + breath * 2),
+        };
+      }
+
+      function getMournfulColor(particle, time) {
+        const fluid = settings.fluid;
+        const seconds = time * 0.001 * fluid.speed;
+        const x = (particle.nx - 0.5) * fluid.zoom;
+        const y = (particle.ny - 0.5) * fluid.zoom;
+        const radius = Math.hypot(x, y);
+        const angle = Math.atan2(y, x);
+        const warpA = Math.sin(x * fluid.warp + seconds * 1.7 + fluid.seed);
+        const warpB = Math.cos(y * fluid.warp * 1.18 - seconds * 1.35);
+        const spiral = Math.sin(angle * 6 + radius * 10.5 - seconds * 2.25);
+        const interference =
+          Math.sin((x + warpB * 0.18) * 8.5 + seconds * 2.1) +
+          Math.cos((y + warpA * 0.16) * 9.25 - seconds * 1.65) +
+          spiral;
+        const grain =
+          (hash2(
+            Math.floor(particle.nx * fluid.pixelate),
+            Math.floor(particle.ny * fluid.pixelate),
+            fluid.seed + Math.floor(seconds * 18),
+          ) -
+            0.5) *
+          fluid.grain;
+        const paletteAmount =
+          interference * 0.13 + radius * 0.68 + angle * 0.055 + seconds * 0.1 + grain;
+        const aurora = paletteAt(paletteAmount);
+        const headPulse =
+          particle.headInfluence *
+          (0.5 +
+            0.5 *
+              Math.sin(seconds * 1.45 - particle.headDelay * 6.28 + particle.phase));
+        const source = [particle.red, particle.green, particle.blue];
+        const luminance = 0.48 + particle.luma * 0.72;
+        const shade = 0.9 + headPulse * 0.18;
+        const red = mixChannel(source[0], aurora[0] * luminance * shade, fluid.colorMix);
+        const green = mixChannel(source[1], aurora[1] * luminance * shade, fluid.colorMix);
+        const blue = mixChannel(source[2], aurora[2] * luminance * shade, fluid.colorMix);
+
+        return `rgb(${red}, ${green}, ${blue})`;
+      }
+
+      function updatePointer(event) {
+        const rect = canvas.getBoundingClientRect();
+
+        state.pointer.x = event.clientX - rect.left;
+        state.pointer.y = event.clientY - rect.top;
+      }
+
+      function draw(time) {
+        const responsive = getResponsiveSettings();
+        ctx.clearRect(0, 0, state.width, state.height);
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.font = `${Math.max(9, responsive.pixelSize * 1.32)}px ui-monospace, SFMono-Regular, Menlo, Consolas, monospace`;
+
+        for (const particle of state.particles) {
+          const sad = getSadMotion(particle, time);
+          let targetX = particle.homeX + sad.x;
+          let targetY = particle.homeY + sad.y;
+
+          if (state.pointer.active && !prefersReducedMotion) {
+            const dx = particle.homeX - state.pointer.x;
+            const dy = particle.homeY - state.pointer.y;
+            const distance = Math.hypot(dx, dy);
+
+            if (distance < responsive.hoverRadius) {
+              const force = (1 - distance / responsive.hoverRadius) ** 2;
+              const angle = Math.atan2(dy, dx);
+
+              targetX += Math.cos(angle) * responsive.pushStrength * force;
+              targetY += Math.sin(angle) * responsive.pushStrength * force;
+            }
+          }
+
+          particle.x += (targetX - particle.x) * particle.speed;
+          particle.y += (targetY - particle.y) * particle.speed;
+
+          const shimmer =
+            0.94 +
+            Math.sin(time * 0.0016 + particle.phase + particle.headDelay * 4) *
+              0.06;
+
+          ctx.globalAlpha = particle.alpha * shimmer;
+          ctx.fillStyle = getMournfulColor(particle, time);
+          ctx.fillText(
+            particle.glyph,
+            particle.x + particle.size * 0.5,
+            particle.y + particle.size * 0.5,
+          );
+        }
+
+        ctx.globalAlpha = 1;
+        requestAnimationFrame(draw);
+      }
+
+      canvas.addEventListener("pointerenter", (event) => {
+        state.pointer.active = true;
+        updatePointer(event);
+      });
+
+      canvas.addEventListener("pointermove", updatePointer);
+
+      canvas.addEventListener("pointerleave", () => {
+        state.pointer.active = false;
+      });
+
+      let resizeTimer;
+
+      window.addEventListener("resize", () => {
+        window.clearTimeout(resizeTimer);
+        resizeTimer = window.setTimeout(buildParticles, 120);
+      });
+
+      image.addEventListener("load", () => {
+        buildParticles();
+        requestAnimationFrame(draw);
+      });
+
+      image.addEventListener("error", () => {
+        resizeCanvas();
+        ctx.fillStyle = "#ffffff";
+        ctx.font = "16px Arial, sans-serif";
+        ctx.fillText(`Could not load ${settings.imageSrc}`, 24, 32);
+      });
+    </script>
+  </body>
+</html>

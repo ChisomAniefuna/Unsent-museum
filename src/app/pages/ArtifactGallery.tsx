@@ -1,0 +1,356 @@
+import { useState, useMemo, useEffect, useRef } from "react";
+import { useNavigate, useParams } from "react-router";
+import { motion, AnimatePresence } from "motion/react";
+import { Search, LayoutGrid, GalleryHorizontalEnd, ChevronDown } from "lucide-react";
+import Masonry, { ResponsiveMasonry } from "react-responsive-masonry";
+import { ROOMS } from "../data/rooms";
+import { Artifact } from "../data/artifacts";
+import { ShaderArtifactCard } from "../components/ShaderArtifactCard";
+import { ShaderCarousel3D } from "../components/ShaderCarousel3D";
+import { ArtifactDetailModal } from "../components/ArtifactDetailModal";
+import { useArtifacts } from "../hooks/useArtifacts";
+import { CryingMaskCard } from "../components/CryingMaskCard";
+import { SadnessHeadsCard } from "../components/SadnessHeadsCard";
+
+type SortMode = "newest" | "liked" | "shared";
+type ViewMode = "carousel" | "grid";
+
+// Spread the list so no two cards within a row share the same shader (which would
+// read as look-alikes). Keeps sort order otherwise: at each step it takes the
+// earliest item whose shader differs from the last few already placed.
+function deClumpByShader(items: Artifact[]): Artifact[] {
+  const pending = [...items];
+  const out: Artifact[] = [];
+  while (pending.length) {
+    const recent = out.slice(-3).map((a) => a.dna.shaderIndex);
+    let idx = pending.findIndex((a) => !recent.includes(a.dna.shaderIndex));
+    if (idx === -1) idx = 0; // all remaining clash, take the next anyway
+    out.push(pending.splice(idx, 1)[0]);
+  }
+  return out;
+}
+
+export function ArtifactGallery() {
+  const { emotion } = useParams<{ emotion: string }>();
+  const navigate = useNavigate();
+  const [activeEmotion, setActiveEmotion] = useState<string>(
+    emotion && emotion !== "all" ? emotion : "all"
+  );
+  // Newest first by default so a visitor's just-created artifact leads the gallery.
+  const [sort, setSort] = useState<SortMode>("newest");
+  const [view, setView] = useState<ViewMode>("carousel");
+  const [search, setSearch] = useState("");
+  const [selectedArtifact, setSelectedArtifact] = useState<Artifact | null>(null);
+  const { artifacts } = useArtifacts();
+
+  // Keep the active room in sync with the URL (/gallery/:emotion), including when
+  // navigating between rooms without a full remount.
+  useEffect(() => {
+    setActiveEmotion(emotion && emotion !== "all" ? emotion : "all");
+  }, [emotion]);
+
+  const filtered = useMemo(() => {
+    let items = artifacts.filter((a) => a.visibility === "public");
+    if (activeEmotion !== "all") items = items.filter((a) => a.emotion === activeEmotion);
+    if (search.trim()) {
+      const q = search.toLowerCase();
+      items = items.filter(
+        (a) =>
+          a.title.toLowerCase().includes(q) ||
+          a.emotion.includes(q) ||
+          a.messageExcerpt?.toLowerCase().includes(q)
+      );
+    }
+    if (sort === "liked") items = [...items].sort((a, b) => b.likes - a.likes);
+    else if (sort === "shared") items = [...items].sort((a, b) => b.shares - a.shares);
+    else items = [...items].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    const ordered = deClumpByShader(items);
+    // Editorial pin: in the Regret room, surface the mask + heads canvas pieces first
+    // so they always land in the opening five (they draw the most attention).
+    if (activeEmotion === "regret") {
+      const special = ordered.filter((a) => a.custom);
+      if (special.length) return [...special, ...ordered.filter((a) => !a.custom)];
+    }
+    return ordered;
+  }, [artifacts, activeEmotion, sort, search]);
+
+  const currentRoom = activeEmotion !== "all" ? ROOMS.find((r) => r.id === activeEmotion) : null;
+  const accentColor = currentRoom?.palette.glow || "#9b7ed9";
+  const showTags = activeEmotion === "all";
+
+  return (
+    <div
+      className="relative w-full min-h-full"
+      style={{ background: "linear-gradient(180deg, #06040a 0%, #040308 100%)" }}
+    >
+      {/* Back to Museum, always pinned to the top-left of the viewport */}
+      <motion.button
+        whileHover={{ scale: 1.05 }}
+        whileTap={{ scale: 0.95 }}
+        onClick={() => navigate("/")}
+        className="fixed left-4 top-4 md:left-8 md:top-6 z-50 flex items-center justify-center rounded-full transition-all"
+        style={{
+          width: 48,
+          height: 48,
+          background: "rgba(20,14,28,0.55)",
+          border: "1px solid rgba(255,255,255,0.14)",
+          color: "rgba(255,255,255,0.8)",
+          backdropFilter: "blur(10px)",
+          WebkitBackdropFilter: "blur(10px)",
+        }}
+        aria-label="Back to Museum"
+      >
+        <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+          <path d="M10 15.8333L4.16667 10L10 4.16667" stroke="currentColor" strokeWidth="1.25" strokeLinecap="round" strokeLinejoin="round"/>
+          <path d="M15.8333 10H4.16667" stroke="currentColor" strokeWidth="1.25" strokeLinecap="round" strokeLinejoin="round"/>
+        </svg>
+      </motion.button>
+
+      {/* Header */}
+      <div className="relative z-10 px-4 md:px-8 pt-20 md:pt-24 pb-6 max-w-7xl mx-auto">
+        <motion.div
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6 }}
+        >
+          <div className="flex flex-col gap-5 md:flex-row md:items-end md:justify-between">
+            <div>
+              <h1
+                style={{
+                  fontFamily: "'Cormorant Garamond', serif",
+                  fontSize: "clamp(1.8rem, 4vw, 2.8rem)",
+                  fontWeight: 300,
+                  color: "rgba(255,255,255,0.95)",
+                  letterSpacing: "-0.01em",
+                }}
+              >
+                Museum of Artifacts
+              </h1>
+              <p className="mt-1 text-sm italic opacity-40" style={{ fontFamily: "'Cormorant Garamond', serif" }}>
+                Living relics of unsent messages, emotions given form.
+              </p>
+            </div>
+
+            {/* Compact control cluster, top-right. Order: 3D Flow · Room · Sort · Search. */}
+            <div className="flex flex-wrap items-center gap-2 md:justify-end">
+              {/* 1 · 3D Flow ⇄ Grid, single click-to-toggle; 3D is the lit (accent) state. */}
+              {(() => {
+                const is3D = view === "carousel";
+                const Icon = is3D ? GalleryHorizontalEnd : LayoutGrid;
+                return (
+                  <button
+                    onClick={() => setView(is3D ? "grid" : "carousel")}
+                    className="flex items-center gap-1.5 px-4 py-1.5 rounded-full text-[11px] transition-all"
+                    style={{
+                      background: is3D ? accentColor + "26" : "rgba(255,255,255,0.04)",
+                      border: `1px solid ${is3D ? accentColor + "55" : "rgba(255,255,255,0.1)"}`,
+                      color: is3D ? accentColor : "rgba(255,255,255,0.55)",
+                    }}
+                    aria-label={is3D ? "Switch to grid view" : "Switch to 3D flow view"}
+                  >
+                    <Icon size={13} />
+                    {is3D ? "3D Flow" : "Grid"}
+                  </button>
+                );
+              })()}
+
+              {/* 2 · Room */}
+              <Dropdown
+                  value={activeEmotion}
+                  onChange={setActiveEmotion}
+                  accent={accentColor}
+                  options={[
+                    { value: "all", label: "All Rooms" },
+                    ...ROOMS.map((r) => ({ value: r.id, label: r.name, color: r.palette.glow })),
+                  ]}
+                />
+
+              {/* 3 · Sort */}
+              <Dropdown
+                value={sort}
+                onChange={(v) => setSort(v as SortMode)}
+                accent={accentColor}
+                options={[
+                  { value: "newest", label: "Newest" },
+                  { value: "liked", label: "Most Liked" },
+                  { value: "shared", label: "Most Shared" },
+                ]}
+              />
+
+              {/* 4 · Search */}
+              <SearchField value={search} onChange={setSearch} />
+            </div>
+          </div>
+        </motion.div>
+      </div>
+
+      {/* Masonry grid */}
+      <div className="px-4 md:px-8 pb-16 max-w-7xl mx-auto">
+        <AnimatePresence mode="wait">
+          {filtered.length === 0 ? (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              className="flex flex-col items-center justify-center py-24"
+            >
+              <p style={{ fontFamily: "Georgia, serif", fontSize: "1.1rem", color: "rgba(255,255,255,0.25)", fontStyle: "italic" }}>
+                No artifacts found.
+              </p>
+              <p className="mt-2 text-xs" style={{ color: "rgba(255,255,255,0.15)" }}>
+                Be the first to leave something here.
+              </p>
+            </motion.div>
+          ) : view === "carousel" ? (
+            <motion.div
+              key={"carousel-" + activeEmotion + sort}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 0.4 }}
+              className="pt-8"
+            >
+              <ShaderCarousel3D
+                artifacts={filtered}
+                accentColor={accentColor}
+                onSelect={(a) => setSelectedArtifact(a)}
+                showTags={showTags}
+              />
+            </motion.div>
+          ) : (
+            <motion.div
+              key={activeEmotion + sort}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 0.4 }}
+            >
+              <ResponsiveMasonry columnsCountBreakPoints={{ 320: 1, 640: 2, 900: 3, 1200: 4 }}>
+                <Masonry gutter="16px">
+                  {filtered.map((artifact) => (
+                    <motion.div
+                      className="w-full"
+                      key={artifact.id}
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.4 }}
+                    >
+                      {artifact.custom === "mask" ? (
+                        <CryingMaskCard artifact={artifact} showTag={showTags} onClick={() => setSelectedArtifact(artifact)} />
+                      ) : artifact.custom === "heads" ? (
+                        <SadnessHeadsCard artifact={artifact} showTag={showTags} onClick={() => setSelectedArtifact(artifact)} />
+                      ) : (
+                        <ShaderArtifactCard
+                          artifact={artifact}
+                          onClick={() => setSelectedArtifact(artifact)}
+                          showTag={showTags}
+                        />
+                      )}
+                    </motion.div>
+                  ))}
+                </Masonry>
+              </ResponsiveMasonry>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
+
+      {/* Detail modal */}
+      <AnimatePresence>
+        {selectedArtifact && (
+          <ArtifactDetailModal
+            artifact={selectedArtifact}
+            onClose={() => setSelectedArtifact(null)}
+          />
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
+
+// Compact glass dropdown, used for the room filter and the sort order so the bar
+// stays a single tidy row in the top-right instead of two long rows of chips.
+interface DropdownOption { value: string; label: string; color?: string }
+function Dropdown({ value, onChange, options, accent }: {
+  value: string;
+  onChange: (v: string) => void;
+  options: DropdownOption[];
+  accent: string;
+}) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const onDoc = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener("mousedown", onDoc);
+    return () => document.removeEventListener("mousedown", onDoc);
+  }, [open]);
+
+  const current = options.find((o) => o.value === value) || options[0];
+
+  return (
+    <div ref={ref} className="relative">
+      <button
+        onClick={() => setOpen((o) => !o)}
+        className="flex items-center gap-2 px-4 py-1.5 rounded-full text-xs transition-all"
+        style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.1)", color: "rgba(255,255,255,0.72)" }}
+      >
+        {current?.color && <span className="w-2 h-2 rounded-full" style={{ background: current.color }} />}
+        {current?.label}
+        <ChevronDown size={13} style={{ opacity: 0.5, transform: open ? "rotate(180deg)" : "none", transition: "transform 0.2s" }} />
+      </button>
+      <AnimatePresence>
+        {open && (
+          <motion.div
+            initial={{ opacity: 0, y: -6 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -6 }}
+            transition={{ duration: 0.15 }}
+            className="absolute right-0 mt-2 z-50 min-w-[168px] rounded-2xl p-1"
+            style={{
+              background: "rgba(14,10,20,0.96)",
+              border: "1px solid rgba(255,255,255,0.12)",
+              backdropFilter: "blur(20px)",
+              WebkitBackdropFilter: "blur(20px)",
+              boxShadow: "0 20px 50px rgba(0,0,0,0.6)",
+            }}
+          >
+            {options.map((o) => (
+              <button
+                key={o.value}
+                onClick={() => { onChange(o.value); setOpen(false); }}
+                className="flex items-center gap-2 w-full text-left px-3 py-2 rounded-xl text-xs transition-colors hover:bg-white/5"
+                style={{
+                  background: o.value === value ? accent + "22" : "transparent",
+                  color: o.value === value ? accent : "rgba(255,255,255,0.6)",
+                }}
+              >
+                {o.color && <span className="w-2 h-2 rounded-full" style={{ background: o.color }} />}
+                {o.label}
+              </button>
+            ))}
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
+
+function SearchField({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+  return (
+    <div
+      className="flex items-center gap-2 px-3 py-1.5 rounded-full"
+      style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.1)", width: 148 }}
+    >
+      <Search size={13} style={{ color: "rgba(255,255,255,0.3)", flexShrink: 0 }} />
+      <input
+        type="text"
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder="Search…"
+        className="flex-1 min-w-0 bg-transparent text-xs outline-none"
+        style={{ color: "rgba(255,255,255,0.65)" }}
+      />
+    </div>
+  );
+}

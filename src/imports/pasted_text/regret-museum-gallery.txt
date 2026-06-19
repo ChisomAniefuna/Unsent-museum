@@ -1,0 +1,341 @@
+Shader Regret room Gallery 
+
+Use this as the regret museum gallery artifact
+LMN1.WzMsNywyNzg4LCIwZTNhNWMiLCIyZTdmYjgiLCI5ZmQ0ZTgiLCIxNjIyMmUiLCIwMzA2MDgiLCIxNjo5IiwtMSwxLjI0LDAuOTMsMS4yNiwwLjc3LDcuNCwwLDAuNDUsMSwwLjg3LDQxLDk4LDAuNTksMC40NzEsMC4yNyw5NCw3MCwwLjM2LDAuMjksMC45NiwwLjQ0LDEwLjUsMCwyLDAsMC42LDAsOSwzLDAuNTk5LDIsMywxLDAsMC45NDcsMC45MzMsMC45MTYsMC4yODgsMC45Mjdd
+
+#ifdef GL_ES
+precision mediump float;
+#endif
+
+uniform float u_time;
+uniform vec2 u_resolution;
+
+#define BASE   vec3(0.725, 0.796, 0.890)
+#define WASH   vec3(0.867, 0.922, 0.980)
+#define SHADOW vec3(0.557, 0.659, 0.784)
+#define DEEP   vec3(0.010, 0.020, 0.045)
+
+float hash21(vec2 p)
+{
+    p = fract(p * vec2(123.34, 456.21));
+    p += dot(p, p + 45.32);
+    return fract(p.x * p.y);
+}
+
+float noise(vec2 p)
+{
+    vec2 i = floor(p);
+    vec2 f = fract(p);
+
+    float a = hash21(i);
+    float b = hash21(i + vec2(1.0, 0.0));
+    float c = hash21(i + vec2(0.0, 1.0));
+    float d = hash21(i + vec2(1.0, 1.0));
+
+    vec2 u = f * f * (3.0 - 2.0 * f);
+
+    return mix(a, b, u.x)
+        + (c - a) * u.y * (1.0 - u.x)
+        + (d - b) * u.x * u.y;
+}
+
+float fbm(vec2 p)
+{
+    float v = 0.0;
+    float a = 0.5;
+
+    for (int i = 0; i < 5; i++)
+    {
+        v += a * noise(p);
+        p *= 2.0;
+        a *= 0.5;
+    }
+
+    return v;
+}
+
+void main()
+{
+    // Use gl_FragCoord and u_resolution to get normalized pixel coordinates
+    vec2 uv = (gl_FragCoord.xy - 0.5 * u_resolution.xy) / u_resolution.y;
+
+    // Multiply u_time to increase the global animation speed
+    float t = u_time * 2.5; 
+    
+    float r = length(uv);
+    float a = atan(uv.y, uv.x);
+
+    float spiral = a + 2.8 / (r + 0.18) + t * 0.25;
+    vec2 suv = vec2(cos(spiral), sin(spiral)) * r;
+
+    float smoke = fbm(suv * 4.0 + vec2(t * 0.05, -t * 0.04));
+
+    float arm = sin(r * 26.0 - a * 5.0 + t * 1.6 + smoke * 4.0);
+    arm = smoothstep(0.15, 1.0, arm);
+
+    float glow = exp(-r * 2.5);
+
+    vec3 col = DEEP;
+    col += SHADOW * smoke * 0.35;
+    col += BASE * arm * glow * 0.75;
+    col += WASH * pow(arm, 4.0) * glow * 0.55;
+
+    // The ring and void core calculations were removed from here
+
+    float vignette = 1.0 - smoothstep(0.75, 1.3, r);
+    col *= vignette;
+
+    // Output using gl_FragColor
+    gl_FragColor = vec4(col, 1.0);
+}
+#ifdef GL_ES
+precision mediump float;
+#endif
+
+uniform float u_time;
+uniform vec2 u_resolution;
+
+#define GLOW   vec3(0.35, 0.60, 0.95) // Bright, crisp neon blue
+#define CORE   vec3(0.15, 0.30, 0.65) // Mid-tone blue
+#define SHADOW vec3(0.02, 0.05, 0.15) // Deep, dark blue backdrop
+#define DEEP   vec3(0.005, 0.01, 0.03) // Near black, abyssal blue
+
+float hash21(vec2 p)
+{
+    p = fract(p * vec2(123.34, 456.21));
+    p += dot(p, p + 45.32);
+    return fract(p.x * p.y);
+}
+
+float box(vec2 p, vec2 b)
+{
+    vec2 d = abs(p) - b;
+    float outside = length(max(d, 0.0));
+    float inside = min(max(d.x, d.y), 0.0);
+    return 1.0 - smoothstep(0.0, 0.005, outside + inside); 
+}
+
+float glyph(vec2 p, float id)
+{
+    float g = 0.0;
+
+    if (id < 0.25)
+    {
+        g += box(p, vec2(0.04, 0.28));
+        g += box(p - vec2(0.0, -0.38), vec2(0.05, 0.05));
+    }
+    else if (id < 0.5)
+    {
+        g += box(p - vec2(-0.12, 0.0), vec2(0.04, 0.28));
+        g += box(p - vec2(0.12, 0.0), vec2(0.04, 0.28));
+        g += box(p, vec2(0.20, 0.035));
+    }
+    else if (id < 0.75)
+    {
+        g += box(p + vec2(0.12, -0.12), vec2(0.18, 0.035));
+        g += box(p - vec2(0.12, 0.12), vec2(0.18, 0.035));
+    }
+    else
+    {
+        g += box(p, vec2(0.22, 0.035));
+        g += box(p, vec2(0.035, 0.22));
+    }
+
+    return g;
+}
+
+void main()
+{
+    vec2 uv = (gl_FragCoord.xy - 0.5 * u_resolution.xy) / u_resolution.y;
+
+    uv.x += sin(u_time * 0.4) * 0.02;
+    uv.y += cos(u_time * 0.3) * 0.02;
+
+    float r = max(length(uv), 0.0001);
+    float a = atan(uv.y, uv.x);
+
+    float warp = sin(r * 15.0 - u_time * 1.5) * 0.015;
+    
+    float depth = 0.5 / (r + warp);
+    vec2 tunnelUV = vec2(a / 6.28318, depth);
+
+    tunnelUV.y -= u_time * 2.0; 
+    tunnelUV.x += sin(depth * 1.5 + u_time * 0.5) * 0.05; 
+
+    // Increased density to define the walls better
+    vec2 cells = vec2(24.0, 24.0);
+    vec2 gridUV = tunnelUV * cells;
+    vec2 id = floor(gridUV);
+    vec2 gv = fract(gridUV) - 0.5;
+
+    // NEW: Generate a structural wireframe/grid on the walls
+    vec2 edge = smoothstep(0.46, 0.5, abs(gv));
+    float wireframe = max(edge.x, edge.y);
+
+    float rnd = hash21(id);
+    float appear = step(0.5, rnd);
+    float g = glyph(gv, rnd);
+
+    vec3 col = DEEP;
+
+    // Pushed the fade-out further back so you can see deeper into the hole
+    float distFade = smoothstep(0.0, 2.5, depth);
+    col += SHADOW * (1.0 - distFade);
+
+    // NEW: Render the physical walls of the tunnel using the wireframe
+    col += CORE * wireframe * 0.35 * (1.0 - distFade);
+
+    float flicker = 0.8 + 0.2 * sin(u_time * 15.0 + rnd * 20.0);
+
+    // Render the floating glyphs
+    col += GLOW * g * appear * flicker * (1.0 - distFade);
+    col += CORE * g * appear * (1.0 - distFade) * 0.8;
+
+    // Relaxed the darkness at the center so the 3D structure is visible
+    float voidPull = smoothstep(0.0, 0.45, r); 
+    float vignette = smoothstep(1.3, 0.15, r); 
+    
+    col *= voidPull * vignette;
+
+    gl_FragColor = vec4(col, 1.0);
+}
+LMN1.WzMsNCw1NjczLCIwZTNhNWMiLCIyZTdmYjgiLCIwMDIyMmUiLCIwMDAwMDAiLCIwMzA2MDgiLCIxNjo5IiwtNCwwLjgsMS4zNSwxLjI4LDAuNTgsNy40LDEuNjUsMC43NiwwLjIxLDEuMTIsNTgsNTEsMC41MSwwLjYxLDAuMjE1LDk0LDM0LDAuNDYsMC4yOSwxLjAyLDAuODcsNy41LDAsMiwwLDAuNiwxLDIsNCwwLjU5MSw1LDUsMCwwLDEuMTMsMC40NjUsMC42MDksMC40NywwLjY3Nl0
+This is a Fluid design — generative WebGL art from https://fluid.krackeddevs.com.
+Engine: Interfere  ·  Palette: OCEAN  ·  Aspect: 1:1
+Surface: ASCII
+Zoom 1.55  ·  Warp 5.0  ·  Speed 1.25  ·  Grain 0.030  ·  Seed 30
+Open / remix: https://fluid.krackeddevs.com/#p=1.25,1.55,5,0.03,1,10,0,2,30,0,0,1,0,0,5,2
+With the Fluid MCP, call decode_link on that URL to load it exactly; otherwise recreate it with create_piece using the values above.
+#define u_res (iResolution.xy)
+#define u_t iTime
+float u_nw_5_str = 1.3;
+float u_nw_5_sc = 1.2;
+float u_nw_5_sx = 1.0;
+float u_nw_5_sy = 1.0;
+float u_nw_5_sp = 0.11;
+float u_nw_5_oc = 4.0;
+float u_nw_5_it = 1.0;
+float u_nw_5_ang = 2.932153;
+int u_nw_5_nt = 0;
+float u_op_5 = 1.0;
+float u_lyr_5_tmul = 1.0;
+float u_lyr_5_toff = 0.0;
+float u_px_4_s = 4.0;
+float u_op_4 = 1.0;
+float u_lyr_4_tmul = 1.0;
+float u_lyr_4_toff = 0.0;
+float u_rp_3_cx = 0.5;
+float u_rp_3_cy = 0.5;
+float u_rp_3_fq = 10.0;
+float u_rp_3_am = 0.03;
+float u_rp_3_dc = 2.0;
+float u_op_3 = 1.0;
+float u_lyr_3_tmul = 1.0;
+float u_lyr_3_toff = 0.0;
+float u_pr_2_cx = 0.5;
+float u_pr_2_cy = 0.5;
+float u_pr_2_tw = 0.0;
+float u_pr_2_zm = 1.0;
+float u_op_2 = 1.0;
+float u_lyr_2_tmul = 1.0;
+float u_lyr_2_toff = 0.0;
+float u_wv_1_f = 4.0;
+float u_wv_1_a = 0.15;
+float u_wv_1_p = 0.5;
+float u_wv_1_e = 0.183;
+float u_wv_1_ang = 0.0;
+float u_wv_1_bn = 1.0;
+float u_wv_1_bg = 0.2;
+vec3 u_wv_1_c = vec3(0.419608, 0.498039, 0.909804);
+float u_op_1 = 1.0;
+float u_lyr_1_tmul = 0.6;
+float u_lyr_1_toff = 0.0;
+float u_fw_6_str = 0.66;
+float u_fw_6_sc = 3.0;
+float u_fw_6_sp = 0.5;
+float u_fw_6_ang = 0.0;
+int u_fw_6_nt = 0;
+float u_op_6 = 1.0;
+float u_lyr_6_tmul = 1.0;
+float u_lyr_6_toff = 0.0;
+float hash2(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}
+float vnoise(vec2 p){vec2 i=floor(p),f=fract(p),u2=f*f*(3.0-2.0*f);return mix(mix(hash2(i),hash2(i+vec2(1,0)),u2.x),mix(hash2(i+vec2(0,1)),hash2(i+vec2(1,1)),u2.x),u2.y);}
+float fbm(vec2 p,float oct){float v=0.0,a=0.5;for(int i=0;i<8;i++){if(float(i)>=oct)break;v+=vnoise(p)*a;p*=2.0;a*=0.5;}return v;}
+vec2 pgrad(vec2 i){float h=hash2(i);float a=h*6.2831853;return vec2(cos(a),sin(a));}
+float pnoise(vec2 p){vec2 i=floor(p),f=fract(p);vec2 u=f*f*(3.0-2.0*f);float a=dot(pgrad(i),f);float b=dot(pgrad(i+vec2(1.,0.)),f-vec2(1.,0.));float c=dot(pgrad(i+vec2(0.,1.)),f-vec2(0.,1.));float d=dot(pgrad(i+vec2(1.,1.)),f-vec2(1.,1.));return 0.5+0.5*mix(mix(a,b,u.x),mix(c,d,u.x),u.y);}
+float cnoise(vec2 p){vec2 i=floor(p),f=fract(p);float md=1.0;for(int yi=-1;yi<=1;yi++){for(int xi=-1;xi<=1;xi++){vec2 g=vec2(float(xi),float(yi));vec2 o=g+vec2(hash2(i+g),hash2(i+g+vec2(13.7,7.1)))-f;md=min(md,dot(o,o));}}return sqrt(md);}
+float fbmAt(vec2 p,float oct,int nt){float v=0.0,a=0.5;for(int i=0;i<8;i++){if(float(i)>=oct)break;float n;if(nt==1)n=pnoise(p);else if(nt==2)n=cnoise(p);else n=vnoise(p);v+=n*a;p*=2.0;a*=0.5;}return v;}
+vec2 rot2(vec2 p,float a){float c=cos(a),s2=sin(a);return vec2(p.x*c-p.y*s2,p.x*s2+p.y*c);}
+vec3 bmScreen(vec3 b,vec3 s){return 1.0-(1.0-b)*(1.0-s);}
+vec3 bmOverlay(vec3 b,vec3 s){return mix(2.0*b*s,1.0-2.0*(1.0-b)*(1.0-s),step(vec3(0.5),b));}
+vec3 bmSoftLight(vec3 b,vec3 s){vec3 lo=2.0*b*s+b*b*(1.0-2.0*s);vec3 hi=2.0*b*(1.0-s)+sqrt(b)*(2.0*s-1.0);return mix(lo,hi,step(vec3(0.5),s));}
+vec3 bmColorDodge(vec3 b,vec3 s){return clamp(b/max(1.0-s,1e-4),0.0,1.0);}
+vec3 bmColorBurn(vec3 b,vec3 s){return clamp(1.0-(1.0-b)/max(s,1e-4),0.0,1.0);}
+vec3 bmDifference(vec3 b,vec3 s){return abs(b-s);}
+void mainImage( out vec4 fragColor, in vec2 fragCoord ) {
+  vec2 fragCoord_st = fragCoord;
+
+  vec2 uv=fragCoord_st.xy/u_res;
+  float t=u_t;
+  vec2 rawuv=uv;
+  float t_5=u_t*u_lyr_5_tmul+u_lyr_5_toff;
+  float t_4=u_t*u_lyr_4_tmul+u_lyr_4_toff;
+  float t_3=u_t*u_lyr_3_tmul+u_lyr_3_toff;
+  float t_2=u_t*u_lyr_2_tmul+u_lyr_2_toff;
+  float t_1=u_t*u_lyr_1_tmul+u_lyr_1_toff;
+  float t_6=u_t*u_lyr_6_tmul+u_lyr_6_toff;
+  vec3 col=vec3(0.0000,0.0000,0.0000);
+  {
+    float t=t_1;
+    vec2 wuv=uv;
+    {
+      vec2 nwSrc=wuv;
+      vec2 nwDrift=vec2(cos(u_nw_5_ang),sin(u_nw_5_ang))*t_5*u_nw_5_sp;
+      vec2 nwScl=vec2(u_nw_5_sc*u_nw_5_sx,u_nw_5_sc*u_nw_5_sy);
+      for(int _ni=0;_ni<4;_ni++){ if(float(_ni)>=u_nw_5_it) break; nwSrc+=u_nw_5_str*vec2(fbmAt(nwSrc*nwScl+nwDrift,u_nw_5_oc,u_nw_5_nt)-0.5,fbmAt(nwSrc*nwScl+nwDrift+vec2(5.2,1.3),u_nw_5_oc,u_nw_5_nt)-0.5); }
+      wuv=nwSrc;
+    }
+    wuv=floor(wuv*(u_res/u_px_4_s))/(u_res/u_px_4_s);
+    {
+      float ar=u_res.x/u_res.y;
+      vec2 rpC=vec2(u_rp_3_cx,u_rp_3_cy);
+      vec2 rpD=(wuv-rpC)*vec2(ar,1.0);
+      float rpLen=length(rpD);
+      float rpPhase=sin(rpLen*u_rp_3_fq - t_3)*u_rp_3_am*exp(-rpLen*u_rp_3_dc);
+      vec2 rpDir=rpLen>0.0001?rpD/rpLen:vec2(0.0);
+      wuv+=rpDir*vec2(1.0/ar,1.0)*rpPhase;
+    }
+    {
+      float ar=u_res.x/u_res.y;
+      vec2 prC=vec2(u_pr_2_cx,u_pr_2_cy);
+      vec2 prD=(wuv-prC)*vec2(ar,1.0);
+      float prR=length(prD);
+      float prA=atan(prD.y,prD.x);
+      prA+=u_pr_2_tw*prR;
+      prR/=max(u_pr_2_zm,0.001);
+      vec2 prP=vec2(cos(prA),sin(prA))*prR;
+      wuv=prC+prP*vec2(1.0/ar,1.0);
+    }
+  {
+    vec2 ruv=rot2(wuv-0.5,u_wv_1_ang)+0.5;
+    float wave=sin(ruv.x*u_wv_1_f*6.2832+t)*u_wv_1_a;
+    float _mask=0.0;
+    float _nb=max(u_wv_1_bn,1.0);
+    float _gap=u_wv_1_bg;
+    for(int _i=0;_i<8;_i++){ if(float(_i)>=_nb) break; float _off=(float(_i)-(_nb-1.0)*0.5)*_gap; float _m=smoothstep(u_wv_1_e,0.0,abs(ruv.y-(u_wv_1_p+_off+wave))-u_wv_1_e*0.3); _mask=max(_mask,_m); }
+    vec3 fillC=u_wv_1_c;
+    {
+      vec3 _cbak=col;
+      col=fillC;
+      fillC=col;
+      col=_cbak;
+    }
+    col=mix(col,fillC,_mask*u_op_1);
+  }
+  }
+  fragColor=vec4(clamp(col,0.0,1.0),1.0);
+}
+
+
+LMN1.WzMsNiw4MjE1LCIwZTNhNWMiLCIyZTdmYjgiLCI5ZmQ0ZTgiLCIxNjIyMmUiLCIwMzA2MDgiLCIxNjo5IiwtMzYsMS43MiwxLjA2LDEuMjYsMC42NCw3LjQsMC4yOCwwLjQ1LDEsMC44Nyw0MSw5OCwwLjM5LDAuNDcxLDAuMDU1LDk0LDM0LDAuMzYsMC4yOSwwLjY5LDAuNDQsNy41LDAsMiwwLDAuNiwxLDMsMSwwLjkwNyw1LDIsMCwyLDEuMDQsMC4yNDEsMC43NTYsMC42ODUsMC4yMzVd
+

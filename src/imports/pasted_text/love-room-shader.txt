@@ -1,0 +1,1300 @@
+Shader love room gallery. 
+
+Use this as the love museum gallery artifact
+
+
+1. #ifdef GL_ES
+2. precision mediump float;
+3. #endif
+4. 
+5. uniform vec2 u_resolution;
+6. uniform float u_time;
+7. 
+8. #define TAU 6.28318530718
+9. #define SEED 41.82
+10. 
+11. float hash(float n){ return fract(sin(n)*43758.5453123); }
+12. float hash2(vec2 p){ p=fract(p*vec2(127.1,311.7)); p+=dot(p,p+19.19); return fract(p.x*p.y); }
+13. mat2 rot(float a){ return mat2(cos(a),-sin(a),sin(a),cos(a)); }
+14. 
+15. vec3 lovePalette(float t){
+16.     t=fract(t);
+17.     vec3 c[8];
+18.     c[0]=vec3(.055,.0,.025); c[1]=vec3(.82,.03,.07);
+19.     c[2]=vec3(.96,.20,.26);  c[3]=vec3(1.,.38,.24);
+20.     c[4]=vec3(1.,.76,.55);   c[5]=vec3(1.,.62,.18);
+21.     c[6]=vec3(.05,.55,.50);  c[7]=vec3(.45,.2,.62);
+22.     float s=t*6.0; int i=int(s);
+23.     return mix(c[i],c[i+1],fract(s));
+24. }
+25. 
+26. float petal(vec2 p,float w,float h){
+27.     p.y+=h*.28;
+28.     return clamp((1.-smoothstep(.70,.78,length(vec2(p.x/w,p.y/h))))*smoothstep(-h*.78,h*.22,p.y),0.,1.);
+29. }
+30. 
+31. float butterflyMask(vec2 p){
+32.     p.x=abs(p.x); float r=length(p),a=atan(p.y,p.x);
+33.     float s=exp(-pow(a-.62,2.)*4.2)*.78+exp(-pow(a+.55,2.)*5.2)*.58+exp(-pow(a+1.18,2.)*16.)*.32+.012;
+34.     return smoothstep(s,s-.025,r);
+35. }
+36. 
+37. float body(vec2 p){
+38.     p.x=abs(p.x);
+39.     float b=smoothstep(.018,0.,length(vec2(p.x*2.8,p.y))-.035*(1.25-p.y*1.6));
+40.     float a=smoothstep(.006,0.,abs(p.x-(.018+p.y*.14+sin(p.y*15.)*.01)));
+41.     return clamp(b+a*smoothstep(.10,.16,p.y)*smoothstep(.46,.34,p.y),0.,1.);
+42. }
+43. 
+44. float feather(vec2 p,float angle,float scale){
+45.     p=rot(-angle)*p;
+46.     float f=petal(p,.028*scale,.16*scale);
+47.     return clamp(f+(1.-smoothstep(.004,.015,abs(p.x)))*smoothstep(-.10*scale,.08*scale,p.y)*f*.35,0.,1.);
+48. }
+49. 
+50. float peacockFan(vec2 p,float seed){
+51.     float m=0.;
+52.     for(float i=0.;i<32.;i++){
+53.         float k=i/31.,spread=mix(-1.28,1.28,k);
+54.         float wave=smoothstep(.10,1.,.5+.5*sin(u_time*1.15-k*5.0+seed));
+55.         float radius=mix(.13,.88,k)*(.72+.40*wave);
+56.         m+=feather(p-vec2(sin(spread)*radius,-.10+cos(spread)*radius*.44),spread*.90,mix(1.24,.38,k)*(.70+.50*wave));
+57.     }
+58.     return clamp(m,0.,1.);
+59. }
+60. 
+61. float petalWing(vec2 p,float seed){
+62.     float m=0.; p.x=abs(p.x);
+63.     for(float i=0.;i<34.;i++){
+64.         float n=hash(seed+i*7.31);
+65.         m+=petal(rot(-mix(-1.4,1.4,hash(seed+i*11.)))*(p-vec2(mix(.12,.55,n),mix(-.36,.42,hash(seed+i*3.1)))),.018*mix(.65,1.4,n)*(1.+.18*sin(u_time*.9+i)),.07*mix(.65,1.4,n)*(1.+.18*sin(u_time*.9+i)));
+66.     }
+67.     return clamp(m,0.,1.);
+68. }
+69. 
+70. float silkFlow(vec2 p,float seed){
+71.     float a=atan(p.y,p.x),r=length(p);
+72.     return smoothstep(.25,1.,sin(p.x*8.+p.y*5.+sin(r*8.-u_time)*2.-u_time*1.2+seed)*.55+sin(a*12.+r*18.-u_time*1.4)*.45);
+73. }
+74. 
+75. float veins(vec2 p,float seed){
+76.     p.x=abs(p.x); float a=atan(p.y,p.x),r=length(p);
+77.     return (1.-smoothstep(.02,.07,abs(sin(a*18.+r*14.-u_time*1.6+seed))))*butterflyMask(p);
+78. }
+79. 
+80. vec2 voronoi2(vec2 p,float seed){
+81.     vec2 i=floor(p),f=fract(p); float d1=8.,d2=8.;
+82.     for(int y=-1;y<=1;y++) for(int x=-1;x<=1;x++){
+83.         vec2 n=vec2(float(x),float(y));
+84.         vec2 rp=0.5+0.5*sin(u_time*0.3+TAU*vec2(hash2(i+n),hash2(i+n+vec2(31.41,17.3)))+seed);
+85.         float d=length(n+rp-f);
+86.         if(d<d1){ d2=d1; d1=d; } else if(d<d2) d2=d;
+87.     }
+88.     return vec2(d1,d2);
+89. }
+90. 
+91. vec3 bgVenation(vec2 st,float seed){
+92.     vec2 v=voronoi2(st*4.5+vec2(u_time*.04,0.),seed);
+93.     return lovePalette(fract(u_time*.08+seed*.05))*(1.-smoothstep(0.,.06,v.y-v.x))*.55;
+94. }
+95. 
+96. void main(){
+97.     vec2 st=(gl_FragCoord.xy*2.-u_resolution.xy)/u_resolution.y;
+98.     float seed=SEED,flap=.5+.5*sin(u_time*3.2+seed);
+99. 
+100.     // background: dark flows + venation net only
+101.     float f1=sin(st.x*3.+st.y*2.+u_time*.25);
+102.     float f2=sin(length(st)*7.-u_time*.45);
+103.     float f3=sin((st.x-st.y)*5.+u_time*.18);
+104.     vec3 col=vec3(.055,.0,.025);
+105.     col=mix(col,vec3(.18,.025,.055),.34+.24*f1);
+106.     col=mix(col,vec3(.08,.015,.13),.25+.20*f2);
+107.     col=mix(col,vec3(.25,.10,.035),.10+.12*f3);
+108.     col+=bgVenation(st,seed);
+109. 
+110.     // butterfly
+111.     vec2 warped=st+vec2(sin(u_time*.45+seed)*.035,cos(u_time*.55+seed)*.025);
+112.     vec2 p=vec2(abs(warped.x)/(.18+.82*flap),warped.y);
+113.     float mask=butterflyMask(p),bdy=body(warped);
+114. 
+115.     float fan=peacockFan(warped,seed)*mask;
+116.     float petals=petalWing(p,seed)*mask;
+117.     float silk=silkFlow(p,seed)*mask;
+118. 
+119.     col=mix(col,lovePalette(length(warped)+u_time*.08),fan*.35);
+120.     col+=lovePalette(p.y+u_time*.05)*petals*.38;
+121.     col+=lovePalette(silk+u_time*.07)*silk*.20;
+122. 
+123.     float r=length(p),a=atan(p.y,p.x);
+124.     vec3 accent=lovePalette(fract(u_time*.08+seed*.05)+length(warped)+seed*.1);
+125.     vec3 wing=lovePalette(r*.85+u_time*.08+.15*sin(a*3.+u_time));
+126.     wing+=accent*veins(p,seed)*.38;
+127.     wing+=accent*smoothstep(.45,1.,sin(r*18.-u_time*2.+seed))*.24;
+128.     wing=mix(wing,accent,smoothstep(.12,.045,length(p-vec2(.42,-.28)))*flap*.35);
+129.     wing*=.48+.62*flap;
+130. 
+131.     col*=1.-mask*.22;
+132.     col=mix(col,wing,mask*.95);
+133.     col=mix(col,vec3(1.,.62,.18),bdy*.92);
+134.     col+=vec3(1.,.20,.12)*exp(-length(warped)*5.5)*(.08+.16*flap)*mask;
+135.     col*=smoothstep(1.38,.22,length(st));
+136. 
+137.     gl_FragColor=vec4(clamp(col,0.,1.),1.);
+138. }
+
+2 #ifdef GL_ES
+precision mediump float;
+#endif
+
+uniform vec2 u_resolution;
+uniform float u_time;
+
+#define TAU 6.28318530718
+#define SEED 41.82
+
+float hash(float n){ return fract(sin(n)*43758.5453123); }
+float hash2(vec2 p){ p=fract(p*vec2(127.1,311.7)); p+=dot(p,p+19.19); return fract(p.x*p.y); }
+
+vec3 lovePalette(float t){
+    t=fract(t);
+    if(t<.16) return mix(vec3(.055,.0,.025),vec3(.82,.03,.07),t/.16);
+    if(t<.32) return mix(vec3(.82,.03,.07),vec3(.96,.20,.26),(t-.16)/.16);
+    if(t<.48) return mix(vec3(.96,.20,.26),vec3(1.,.38,.24),(t-.32)/.16);
+    if(t<.64) return mix(vec3(1.,.38,.24),vec3(1.,.76,.55),(t-.48)/.16);
+    if(t<.80) return mix(vec3(1.,.76,.55),vec3(1.,.62,.18),(t-.64)/.16);
+    return mix(vec3(.05,.55,.50),vec3(.45,.2,.62),(t-.80)/.20);
+}
+
+float butterflyMask(vec2 p){
+    p.x=abs(p.x); float r=length(p),a=atan(p.y,p.x);
+    float s=exp(-pow(a-.62,2.)*4.2)*.78+exp(-pow(a+.55,2.)*5.2)*.58+exp(-pow(a+1.18,2.)*16.)*.32+.012;
+    return smoothstep(s,s-.025,r);
+}
+
+float body(vec2 p){
+    p.x=abs(p.x);
+    float b=smoothstep(.018,0.,length(vec2(p.x*2.8,p.y))-.035*(1.25-p.y*1.6));
+    float a=smoothstep(.006,0.,abs(p.x-(.018+p.y*.14+sin(p.y*15.)*.01)));
+    return clamp(b+a*smoothstep(.10,.16,p.y)*smoothstep(.46,.34,p.y),0.,1.);
+}
+
+vec2 voronoi2(vec2 p,float seed){
+    vec2 i=floor(p),f=fract(p); float d1=8.,d2=8.;
+    for(int y=-1;y<=1;y++) for(int x=-1;x<=1;x++){
+        vec2 n=vec2(float(x),float(y));
+        vec2 rp=0.5+0.5*sin(u_time*0.3+TAU*vec2(hash2(i+n),hash2(i+n+vec2(31.41,17.3)))+seed);
+        float d=length(n+rp-f);
+        if(d<d1){ d2=d1; d1=d; } else if(d<d2) d2=d;
+    }
+    return vec2(d1,d2);
+}
+
+void main(){
+    vec2 st=(gl_FragCoord.xy*2.-u_resolution.xy)/u_resolution.y;
+    float seed=SEED;
+    float flap=.5+.5*sin(u_time*3.2+seed);
+    float flapSpeed=abs(cos(u_time*3.2+seed));
+
+    float dist=length(st);
+    float ripple=sin(dist*18.-u_time*6.)*exp(-dist*2.5)*flapSpeed*.12;
+    vec2 rippleUV=st+normalize(st+.0001)*ripple;
+
+    vec2 v=voronoi2(rippleUV*4.5+vec2(u_time*.04,0.),seed);
+    float lines=1.-smoothstep(0.,.06,v.y-v.x);
+    vec3 netCol=lovePalette(fract(u_time*.08+seed*.05))*lines*(.55+flapSpeed*.8);
+
+    vec3 col=vec3(.055,.0,.025);
+    col=mix(col,vec3(.18,.025,.055),.34+.24*sin(st.x*3.+st.y*2.+u_time*.25));
+    col+=netCol;
+
+    vec2 p=vec2(abs(st.x)/(.18+.82*flap),st.y);
+    float mask=butterflyMask(p);
+
+    float r=length(p),a=atan(p.y,p.x);
+    vec3 wing=lovePalette(r*.85+u_time*.08+.15*sin(a*3.+u_time));
+    wing*=.48+.62*flap;
+
+    col*=1.-mask*.22;
+    col=mix(col,wing,mask*.95);
+    col=mix(col,vec3(1.,.62,.18),body(st)*.92);
+    col+=lovePalette(u_time*.08)*exp(-dist*3.)*flapSpeed*.5;
+    col*=smoothstep(1.38,.22,dist);
+    gl_FragColor=vec4(clamp(col,0.,1.),1.);
+}
+
+3. #ifdef GL_ES
+4. precision mediump float;
+5. #endif
+6. 
+7. uniform vec2 u_resolution;
+8. uniform float u_time;
+9. 
+10. #define TAU 6.28318530718
+11. #define SEED 41.82
+12. 
+13. float hash(float n){ return fract(sin(n)*43758.5453123); }
+14. float hash2(vec2 p){ p=fract(p*vec2(127.1,311.7)); p+=dot(p,p+19.19); return fract(p.x*p.y); }
+15. 
+16. vec3 lovePalette(float t){
+17.     t=fract(t);
+18.     if(t<.16) return mix(vec3(.055,.0,.025),vec3(.82,.03,.07),t/.16);
+19.     if(t<.32) return mix(vec3(.82,.03,.07),vec3(.96,.20,.26),(t-.16)/.16);
+20.     if(t<.48) return mix(vec3(.96,.20,.26),vec3(1.,.38,.24),(t-.32)/.16);
+21.     if(t<.64) return mix(vec3(1.,.38,.24),vec3(1.,.76,.55),(t-.48)/.16);
+22.     if(t<.80) return mix(vec3(1.,.76,.55),vec3(1.,.62,.18),(t-.64)/.16);
+23.     return mix(vec3(.05,.55,.50),vec3(.45,.2,.62),(t-.80)/.20);
+24. }
+25. 
+26. float butterflyMask(vec2 p){
+27.     p.x=abs(p.x); float r=length(p),a=atan(p.y,p.x);
+28.     float s=exp(-pow(a-.62,2.)*4.2)*.78+exp(-pow(a+.55,2.)*5.2)*.58+exp(-pow(a+1.18,2.)*16.)*.32+.012;
+29.     return smoothstep(s,s-.025,r);
+30. }
+31. 
+32. float body(vec2 p){
+33.     p.x=abs(p.x);
+34.     float b=smoothstep(.018,0.,length(vec2(p.x*2.8,p.y))-.035*(1.25-p.y*1.6));
+35.     float a=smoothstep(.006,0.,abs(p.x-(.018+p.y*.14+sin(p.y*15.)*.01)));
+36.     return clamp(b+a*smoothstep(.10,.16,p.y)*smoothstep(.46,.34,p.y),0.,1.);
+37. }
+38. 
+39. vec2 voronoi2(vec2 p,float seed){
+40.     vec2 i=floor(p),f=fract(p); float d1=8.,d2=8.;
+41.     for(int y=-1;y<=1;y++) for(int x=-1;x<=1;x++){
+42.         vec2 n=vec2(float(x),float(y));
+43.         vec2 rp=0.5+0.5*sin(u_time*0.3+TAU*vec2(hash2(i+n),hash2(i+n+vec2(31.41,17.3)))+seed);
+44.         float d=length(n+rp-f);
+45.         if(d<d1){ d2=d1; d1=d; } else if(d<d2) d2=d;
+46.     }
+47.     return vec2(d1,d2);
+48. }
+49. 
+50. void main(){
+51.     vec2 st=(gl_FragCoord.xy*2.-u_resolution.xy)/u_resolution.y;
+52.     float seed=SEED;
+53.     float flap=.5+.5*sin(u_time*3.2+seed);
+54.     float emerge=.5+.5*sin(u_time*.4);
+55. 
+56.     vec2 v=voronoi2(st*4.5+vec2(u_time*.04,0.),seed);
+57.     float lines=1.-smoothstep(0.,.06,v.y-v.x);
+58.     vec3 netCol=lovePalette(fract(u_time*.08+seed*.05))*lines;
+59. 
+60.     vec2 p=vec2(abs(st.x)/(.18+.82*flap),st.y);
+61.     float mask=butterflyMask(p);
+62. 
+63.     float r=length(p),a=atan(p.y,p.x);
+64.     vec3 wingHue=lovePalette(r*.85+u_time*.08+.15*sin(a*3.+u_time));
+65. 
+66.     vec3 col=vec3(.055,.0,.025)+netCol*.4;
+67.     vec3 wingNet=netCol*2.5+wingHue*(.3+emerge*.5);
+68.     wingNet*=.48+.62*flap;
+69. 
+70.     col=mix(col,wingNet,mask*(.2+emerge*.75));
+71.     col+=wingHue*lines*mask*.4;
+72.     col=mix(col,vec3(1.,.62,.18),body(st)*.92*emerge);
+73.     col*=smoothstep(1.38,.22,length(st));
+74.     gl_FragColor=vec4(clamp(col,0.,1.),1.);
+75. }
+
+Four. 
+
+
+
+PATTERN BUTTERFLY
+
+Use this one. It keeps Gemini’s clear butterfly structure, but adds peacock-feather spread, love palette, wing veins, iridescent flash, and grid variation.
+#ifdef GL_ES
+precision mediump float;
+#endif
+
+uniform vec2 u_resolution;
+uniform float u_time;
+
+#define PI 3.14159265359
+#define TAU 6.28318530718
+
+float random(vec2 st){
+    return fract(sin(dot(st.xy, vec2(12.9898,78.233))) * 43758.5453123);
+}
+
+vec3 lovePalette(float t){
+    vec3 wine  = vec3(0.06, 0.00, 0.025);
+    vec3 red   = vec3(0.82, 0.03, 0.07);
+    vec3 rose  = vec3(0.96, 0.20, 0.26);
+    vec3 coral = vec3(1.00, 0.38, 0.24);
+    vec3 cream = vec3(1.00, 0.76, 0.55);
+    vec3 gold  = vec3(1.00, 0.62, 0.18);
+
+    t = fract(t);
+
+    if(t < 0.20) return mix(wine, red, t / 0.20);
+    if(t < 0.40) return mix(red, rose, (t - 0.20) / 0.20);
+    if(t < 0.60) return mix(rose, coral, (t - 0.40) / 0.20);
+    if(t < 0.80) return mix(coral, cream, (t - 0.60) / 0.20);
+    return mix(cream, gold, (t - 0.80) / 0.20);
+}
+
+float petal(vec2 p, float w, float h){
+    p.y += h * 0.28;
+    float d = length(vec2(p.x / w, p.y / h));
+    float body = 1.0 - smoothstep(0.70, 0.78, d);
+    float tip = smoothstep(-h * 0.78, h * 0.22, p.y);
+    return clamp(body * tip, 0.0, 1.0);
+}
+
+mat2 rot(float a){
+    float c = cos(a), s = sin(a);
+    return mat2(c,-s,s,c);
+}
+
+float feather(vec2 p, float angle, float scale){
+    p = rot(-angle) * p;
+    float f = petal(p, 0.028 * scale, 0.16 * scale);
+
+    float vein = 1.0 - smoothstep(0.004, 0.015, abs(p.x));
+    vein *= smoothstep(-0.10 * scale, 0.08 * scale, p.y);
+
+    return clamp(f + vein * f * 0.35, 0.0, 1.0);
+}
+
+float peacockSpread(vec2 st, float rnd){
+    float fan = 0.0;
+
+    for(float i = 0.0; i < 22.0; i++){
+        float k = i / 21.0;
+
+        float spread = mix(-1.15, 1.15, k);
+        float delay = k * 4.5;
+
+        float open = 0.5 + 0.5 * sin(u_time * 1.2 - delay + rnd * TAU);
+        open = smoothstep(0.15, 1.0, open);
+
+        float radius = mix(0.16, 0.68, k) * (0.75 + 0.35 * open);
+
+        vec2 pos = vec2(
+            sin(spread) * radius,
+            -0.08 + cos(spread) * radius * 0.38
+        );
+
+        float scale = mix(1.10, 0.42, k) * (0.75 + 0.45 * open);
+        float angle = spread * 0.85;
+
+        fan += feather(st - pos, angle, scale);
+    }
+
+    return clamp(fan, 0.0, 1.0);
+}
+
+void main(){
+    vec2 uv = gl_FragCoord.xy / u_resolution.xy;
+
+    vec2 gridUV = vec2(uv.x * 4.0, uv.y * 3.0);
+    vec2 cellID = floor(gridUV);
+
+    vec2 st = fract(gridUV) * 2.0 - 1.0;
+    st.x *= (u_resolution.x / 4.0) / (u_resolution.y / 3.0);
+
+    float rnd = random(cellID);
+
+    st.x += sin(u_time * 0.45 + rnd * 10.0) * 0.10;
+    st.y += cos(u_time * 0.55 + rnd * 8.0) * 0.08;
+
+    vec3 bg = vec3(0.055, 0.00, 0.025);
+    bg += vec3(0.12, 0.02, 0.05) * max(0.0, 1.0 - length(st));
+
+    vec3 finalColor = bg;
+
+    float fan = peacockSpread(st, rnd);
+    vec3 fanColor = lovePalette(length(st) + rnd * 0.4 + u_time * 0.08);
+    finalColor = mix(finalColor, fanColor, fan * 0.50);
+
+    vec2 p = st;
+    p.x = abs(p.x);
+
+    float flapPhase = u_time * (3.2 + rnd * 2.2) + rnd * TAU;
+    float flap = 0.5 + 0.5 * sin(flapPhase);
+
+    p.x /= 0.18 + 0.82 * flap;
+
+    float r = length(p);
+    float a = atan(p.y, p.x);
+
+    float upperWing   = exp(-pow(a - 0.62, 2.0) * 4.2) * 0.78;
+    float lowerWing   = exp(-pow(a + 0.55, 2.0) * 5.2) * 0.58;
+    float swallowTail = exp(-pow(a + 1.18, 2.0) * 16.0) * 0.32;
+
+    float wingSilhouette = upperWing + lowerWing + swallowTail + 0.012;
+    float wingMask = smoothstep(wingSilhouette, wingSilhouette - 0.025, r);
+
+    vec3 wingBase = lovePalette(r * 0.85 + rnd * 0.35 + u_time * 0.04);
+
+    float bands = sin(r * 18.0 - u_time * 2.0 + rnd * TAU);
+    bands = smoothstep(0.45, 1.0, bands);
+
+    float veins = abs(sin(a * 18.0 + r * 14.0 - u_time * 1.6));
+    veins = 1.0 - smoothstep(0.02, 0.07, veins);
+
+    vec3 gold = vec3(1.0, 0.62, 0.18);
+    vec3 tealFlash = vec3(0.05, 0.65, 0.58);
+
+    float eye = length(p - vec2(0.42, -0.28));
+    float eyeSpot = smoothstep(0.12, 0.045, eye);
+
+    vec3 wingColor = wingBase;
+    wingColor += gold * veins * 0.35;
+    wingColor += gold * bands * 0.18;
+    wingColor = mix(wingColor, tealFlash, eyeSpot * flap * 0.35);
+
+    wingColor *= 0.45 + 0.65 * flap;
+
+    finalColor = mix(finalColor, wingColor, wingMask);
+
+    vec2 bodySt = st;
+    bodySt.x = abs(bodySt.x);
+
+    float bodyShape = length(vec2(bodySt.x * 2.8, bodySt.y)) -
+                      0.035 * (1.25 - bodySt.y * 1.6);
+
+    float bodyMask = smoothstep(0.018, 0.0, bodyShape);
+
+    float antCurve = bodySt.x - (0.018 + bodySt.y * 0.14 + sin(bodySt.y * 15.0) * 0.01);
+    float antLine = smoothstep(0.006, 0.0, abs(antCurve));
+    float antMask = antLine *
+                    smoothstep(0.10, 0.16, bodySt.y) *
+                    smoothstep(0.46, 0.34, bodySt.y);
+
+    float fullBody = clamp(bodyMask + antMask, 0.0, 1.0);
+
+    finalColor = mix(finalColor, gold, fullBody * 0.90);
+
+    float glow = exp(-length(st) * 5.5) * (0.08 + 0.15 * flap);
+    finalColor += vec3(1.0, 0.20, 0.12) * glow;
+
+    gl_FragColor = vec4(clamp(finalColor, 0.0, 1.0), 1.0);
+}
+Direction 5 
+
+#ifdef GL_ES
+precision mediump float;
+#endif
+
+uniform vec2 u_resolution;
+uniform float u_time;
+
+#define TAU 6.28318530718
+
+vec3 palette(float t) {
+    vec3 p = vec3(.50,.38,.30) + vec3(.45,.32,.25) * cos(TAU*(t + vec3(.95,.08,.02)));
+    p = mix(p, vec3(1.,.75,.45), .15);
+    return clamp(mix(p, vec3(.05,.0,.03), -.08), 0., 1.);
+}
+
+float butterfly(vec2 p) {
+    p.x = abs(p.x);
+    float r = length(p), a = atan(p.y, p.x);
+    float w = exp(-pow(a-.62, 2.)*4.)*.78 + exp(-pow(a+.55, 2.)*5.)*.58 + exp(-pow(a+1.18, 2.)*16.)*.30;
+    return smoothstep(w+.015, w-.015, r);
+}
+
+float veins(vec2 p) {
+    float r = length(p), a = atan(p.y, abs(p.x));
+    return (1.0 - smoothstep(.02, .06, abs(sin(a*18.0 + r*14.0)))) * butterfly(p);
+}
+
+float ripples(vec2 p, float t) {
+    float d = length(p);
+    return (1.0 - smoothstep(.85, .97, abs(sin(d*28.0 + t * 3.5)))) * smoothstep(.12, .35, d);
+}
+
+void main() {
+    vec2 uv = (gl_FragCoord.xy * 2.0 - u_resolution.xy) / u_resolution.y;
+    float t = u_time * .55;
+    
+    float flap = .5 + .5 * sin(t*1.6);
+    vec2 p = vec2(uv.x / (.20 + .80*flap), uv.y);
+    
+    float r = length(p), a = atan(p.y, p.x);
+    vec3 wing = palette(r*.8 + t*.06 + .12*sin(a*3.0+t));
+    wing = (wing + palette(t*.08+r) * veins(p) * .25) * (.55 + .45*flap);
+
+    vec3 col = vec3(.045, .0, .022);
+    col += palette(t*.04 + .15*sin(t*.5)) * ripples(uv, t) * 0.8;
+
+    col = mix(col, wing, butterfly(p));
+    col = mix(col, vec3(1.,.68,.22), smoothstep(.035, 0., length(vec2(uv.x*4.0, uv.y))));
+    col *= smoothstep(1.5, .2, length(uv));
+
+    gl_FragColor = vec4(clamp(col, 0., 1.), 1.);
+}
+
+Flower pattern: #ifdef GL_ES
+precision mediump float;
+#endif
+
+uniform vec2 u_resolution;
+uniform float u_time;
+
+#define TAU 6.28318530718
+
+float hash(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
+mat2 rot(float a) { return mat2(cos(a), -sin(a), sin(a), cos(a)); }
+
+vec3 palette(float t) {
+    vec3 c[6];
+    c[0]=vec3(.055,0,.025); c[1]=vec3(.82,.03,.07); c[2]=vec3(.96,.2,.26);
+    c[3]=vec3(1,.38,.24);  c[4]=vec3(1,.76,.55);  c[5]=vec3(1,.62,.18);
+    t = fract(t) * 5.0;
+    int i = int(t);
+    if(i==0) return mix(c[0],c[1],fract(t)); if(i==1) return mix(c[1],c[2],fract(t));
+    if(i==2) return mix(c[2],c[3],fract(t)); if(i==3) return mix(c[3],c[4],fract(t));
+    return mix(c[4],c[5],fract(t));
+}
+
+float flower(vec2 uv, float numPetals, float seed) {
+    // Increased multipliers on u_time to speed up rotation and pulsing speeds
+    float t = u_time * 1.2, f = 0.0;
+    for(float i = 0.0; i < 14.0; i++) {
+        if(i >= numPetals) break;
+        vec2 p = rot(-(i / numPetals * TAU + t * .5 + seed)) * uv;
+        p.y += .42 * .28 - .32 * (.85 + .18 * sin(t * 1.5 + seed));
+        f += (1.0 - smoothstep(.68, .82, length(vec2(p.x / .11, p.y / .42)))) * smoothstep(-.42 * .75, .42 * .22, p.y);
+    }
+    return clamp(f, 0., 1.);
+}
+
+void main() {
+    vec2 uv = gl_FragCoord.xy / u_resolution.xy;
+    vec2 grid = vec2(4.0, 3.0), id = floor(uv * grid), st = (fract(uv * grid) - 0.5) * 2.0;
+    st.x *= (u_resolution.x / grid.x) / (u_resolution.y / grid.y);
+
+    float rand = hash(id);
+    float type = floor(rand * 3.0); 
+    float seed = rand * 5.0, numPetals = type == 0.0 ? 6.0 : (type == 1.0 ? 9.0 : 13.0);
+
+    float d = length(st), mask = flower(st, numPetals, seed * TAU);
+    vec3 bg = mix(vec3(.055, 0., .025), vec3(.09, .01, .04), exp(-d * 4.0) * 0.25);
+    // Increased palette u_time multiplier for faster color shifting
+    vec3 col = palette(d * .5 + seed + u_time * .25);
+
+    gl_FragColor = vec4(mix(bg, col, mask) * smoothstep(1.25, .35, d), 1.0);
+}
+
+Flower: #ifdef GL_ES
+precision mediump float;
+#endif
+
+uniform vec2 u_resolution;
+uniform float u_time;
+
+#define TAU 6.28318530718
+
+mat2 rot(float a) { return mat2(cos(a), -sin(a), sin(a), cos(a)); }
+
+// Transitions dynamically through Red, Black, White, Blue, and Cream
+vec3 romanticPalette(float t) {
+    t = fract(t);
+    if (t < 0.2) return mix(vec3(0.9, 0.0, 0.1), vec3(0.01), t / 0.2);       // Red to Black
+    if (t < 0.4) return mix(vec3(0.01), vec3(0.98), (t - 0.2) / 0.2);       // Black to White
+    if (t < 0.6) return mix(vec3(0.98), vec3(0.1, 0.4, 0.95), (t - 0.4) / 0.2); // White to Blue
+    if (t < 0.8) return mix(vec3(0.1, 0.4, 0.95), vec3(0.98, 0.92, 0.78), (t - 0.6) / 0.2); // Blue to Cream
+    return mix(vec3(0.98, 0.92, 0.78), vec3(0.9, 0.0, 0.1), (t - 0.8) / 0.2); // Cream back to Red
+}
+
+// Generates a smooth heart-shaped domain deformation
+vec2 heartShape(vec2 p) {
+    p.x *= 1.2;
+    p.y -= 0.25 * sqrt(abs(p.x)); 
+    return p;
+}
+
+float singleFlower(vec2 uv, float speed) {
+    float f = 0.0;
+    // Fast rotation and energetic breathing pulsing
+    for(float i = 0.0; i < 9.0; i++) {
+        vec2 p = rot(-(i / 9.0 * TAU + speed * 0.8)) * uv;
+        p.y += .42 * .28 - .35 * (.85 + .22 * sin(speed * 2.2 + i));
+        f += (1.0 - smoothstep(.65, .85, length(vec2(p.x / .12, p.y / .45)))) * smoothstep(-.45 * .75, .45 * .22, p.y);
+    }
+    return clamp(f, 0., 1.);
+}
+
+void main() {
+    // Normalizing screen space into a clean, centered landscape frame
+    vec2 uv = (gl_FragCoord.xy * 2.0 - u_resolution.xy) / u_resolution.y;
+    
+    // Overall speed modifier controlling animation rates
+    float masterSpeed = u_time * 1.5;
+
+    // Transform coordinate system into a romantic heart layout
+    vec2 heartUV = heartShape(uv);
+    float d = length(heartUV);
+
+    // Rapidly morph colors across spatial patterns and time
+    vec3 col = romanticPalette(d * 0.4 - masterSpeed * 0.3);
+    
+    // Create the active, breathing flower element inside the heart coordinate map
+    float mask = singleFlower(heartUV * 1.3, masterSpeed);
+
+    // Deep rich background blending outward to the shifting colors
+    vec3 bg = mix(vec3(0.02, 0.0, 0.03), col * 0.25, exp(-d * 2.0));
+    
+    // Blend background with the hyper-vibrant glowing flower
+    vec3 finalColor = mix(bg, col * 1.3, mask);
+
+    // Soft romantic vignette framing the output canvas
+    finalColor *= smoothstep(1.6, 0.2, length(uv));
+
+    gl_FragColor = vec4(clamp(finalColor, 0., 1.), 1.0);
+}
+ Flower patterns: 
+
+#ifdef GL_ES
+precision mediump float;
+#endif
+
+uniform vec2 u_resolution;
+uniform float u_time;
+
+#define TAU 6.28318530718
+
+float hash(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
+mat2 rot(float a) { return mat2(cos(a), -sin(a), sin(a), cos(a)); }
+
+// Shifts rapidly through Red, Black, White, Blue, and Cream
+vec3 romanticPalette(float t) {
+    t = fract(t);
+    if (t < 0.2) return mix(vec3(0.9, 0.0, 0.1), vec3(0.01), t / 0.2);
+    if (t < 0.4) return mix(vec3(0.01), vec3(0.98), (t - 0.2) / 0.2);
+    if (t < 0.6) return mix(vec3(0.98), vec3(0.1, 0.4, 0.95), (t - 0.4) / 0.2);
+    if (t < 0.8) return mix(vec3(0.1, 0.4, 0.95), vec3(0.98, 0.92, 0.78), (t - 0.6) / 0.2);
+    return mix(vec3(0.98, 0.92, 0.78), vec3(0.9, 0.0, 0.1), (t - 0.8) / 0.2);
+}
+
+// Reshapes grid coordinates into an affectionate, heart-like layout
+vec2 heartShape(vec2 p) {
+    p.x *= 1.2;
+    p.y -= 0.25 * sqrt(abs(p.x));
+    return p;
+}
+
+float singleFlower(vec2 uv, float speed) {
+    float f = 0.0;
+    // Fast-spinning, highly dynamic 9-petal single flower variation
+    for(float i = 0.0; i < 9.0; i++) {
+        vec2 p = rot(-(i / 9.0 * TAU + speed * 0.8)) * uv;
+        p.y += .42 * .28 - .35 * (.85 + .22 * sin(speed * 2.2 + i));
+        f += (1.0 - smoothstep(.65, .85, length(vec2(p.x / .12, p.y / .45)))) * smoothstep(-.45 * .75, .45 * .22, p.y);
+    }
+    return clamp(f, 0., 1.);
+}
+
+void main() {
+    vec2 uv = gl_FragCoord.xy / u_resolution.xy;
+    vec2 grid = vec2(4.0, 3.0), id = floor(uv * grid), st = (fract(uv * grid) - 0.5) * 2.0;
+    st.x *= (u_resolution.x / grid.x) / (u_resolution.y / grid.y);
+
+    // Random cell attributes to offset motion and colors uniquely per grid spot
+    float rand = hash(id);
+    float cellSpeed = u_time * 1.5 + rand * TAU;
+
+    // Apply romantic heart domain mapping inside each individual cell space
+    vec2 heartSt = heartShape(st * 1.2);
+    float d = length(heartSt);
+
+    // Dynamic, fast color calculation using spatial vectors and time multipliers
+    vec3 col = romanticPalette(d * 0.4 - cellSpeed * 0.35);
+    float mask = singleFlower(heartSt, cellSpeed);
+
+    // Deep contrasting background radiating from shifting color lines
+    vec3 bg = mix(vec3(0.02, 0.0, 0.03), col * 0.25, exp(-d * 2.0));
+    vec3 finalColor = mix(bg, col * 1.3, mask);
+
+    // Grid vignette logic
+    gl_FragColor = vec4(finalColor * smoothstep(1.3, .3, length(st)), 1.0);
+}
+
+Flowers pattern: #ifdef GL_ES
+precision mediump float;
+#endif
+
+uniform vec2 u_resolution;
+uniform float u_time;
+
+#define TAU 6.28318530718
+
+float hash(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
+mat2 rot(float a) { return mat2(cos(a), -sin(a), sin(a), cos(a)); }
+
+// Electric Cosmic Palette: Magenta, Neon Cyan, Violet, Electric Blue, Emerald
+vec3 cosmicPalette(float t) {
+    t = fract(t);
+    if (t < 0.25) return mix(vec3(0.95, 0.05, 0.65), vec3(0.05, 0.95, 0.90), t / 0.25);
+    if (t < 0.50) return mix(vec3(0.05, 0.95, 0.90), vec3(0.45, 0.10, 0.95), (t - 0.25) / 0.25);
+    if (t < 0.75) return mix(vec3(0.45, 0.10, 0.95), vec3(0.00, 0.40, 0.98), (t - 0.50) / 0.25);
+    return mix(vec3(0.00, 0.40, 0.98), vec3(0.05, 0.95, 0.50), (t - 0.75) / 0.25);
+}
+
+// Radical heart-wave distortion that shifts dynamically with the bloom cycle
+vec2 shapeShift(vec2 p, float cycle) {
+    float wave = sin(cycle * TAU) * 0.15;
+    p.x *= (1.1 + wave);
+    p.y -= (0.28 + wave) * sqrt(abs(p.x));
+    return p;
+}
+
+float bloomingFlower(vec2 uv, float cellTime) {
+    // Distinct loop stages: 0 to 1 opens/closes, 1 to 2 expands/spreads petals wide
+    float stage = mod(cellTime * 0.8, 2.0);
+    
+    // Stage 1: Open and Close (breathing profile)
+    float bloom = 0.5 + 0.5 * sin(stage * TAU - (TAU * 0.25));
+    float petalWidth = 0.11;
+    
+    // Stage 2: Spread petals ultra-wide, flattening out the flower shape
+    if (stage > 1.0) {
+        float spreadProgress = sin((stage - 1.0) * TAU - (TAU * 0.25)) * 0.5 + 0.5;
+        bloom = 1.0 + spreadProgress * 0.35;
+        petalWidth = 0.11 + spreadProgress * 0.14; 
+    }
+
+    float f = 0.0;
+    // Fast spin that matches the dramatic acceleration of the blooming stages
+    for(float i = 0.0; i < 10.0; i++) {
+        vec2 p = rot(-(i / 10.0 * TAU + cellTime * 1.8)) * uv;
+        p.y += .42 * .28 - .35 * bloom;
+        f += (1.0 - smoothstep(.62, .88, length(vec2(p.x / petalWidth, p.y / .46)))) * smoothstep(-.46 * .75, .46 * .22, p.y);
+    }
+    return clamp(f, 0., 1.);
+}
+
+void main() {
+    vec2 uv = gl_FragCoord.xy / u_resolution.xy;
+    vec2 grid = vec2(4.0, 3.0), id = floor(uv * grid), st = (fract(uv * grid) - 0.5) * 2.0;
+    st.x *= (u_resolution.x / grid.x) / (u_resolution.y / grid.y);
+
+    float rand = hash(id);
+    float cellTime = u_time * 1.4 + rand * 7.0;
+
+    // Mutating heart structure mapped directly to the blooming cycles
+    vec2 morphSt = shapeShift(st * 1.25, cellTime * 0.8);
+    float d = length(morphSt);
+
+    // Rapid neon color shifts following the petal spreading action
+    vec3 col = cosmicPalette(d * 0.55 - cellTime * 0.45);
+    float mask = bloomingFlower(morphSt, cellTime);
+
+    // Cosmic outer glow radiating from behind the shifting tiles
+    vec3 bg = mix(vec3(0.01, 0.01, 0.04), col * 0.35, exp(-d * 2.5));
+    vec3 finalColor = mix(bg, col * 1.5, mask);
+
+    gl_FragColor = vec4(finalColor * smoothstep(1.35, .25, length(st)), 1.0);
+}
+
+Africa pattern. 
+
+#ifdef GL_ES
+precision mediump float;
+#endif
+
+uniform vec2 u_resolution;
+uniform float u_time;
+
+#define TAU 6.28318530718
+
+float hash(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
+mat2 rot(float a) { return mat2(cos(a), -sin(a), sin(a), cos(a)); }
+
+// Cultural Fusion Palette: Africa (Gold, Crimson), Japan (Sakura Pink, Pure White), China (Imperial Red, Jade)
+vec3 culturalPalette(float t) {
+    t = fract(t);
+    if (t < 0.20) return mix(vec3(0.85, 0.02, 0.05), vec3(0.98, 0.72, 0.05), t / 0.20);     // China Red to Africa Gold
+    if (t < 0.40) return mix(vec3(0.98, 0.72, 0.05), vec3(0.98, 0.95, 0.93), (t - 0.20) / 0.20); // Africa Gold to Japan White
+    if (t < 0.60) return mix(vec3(0.98, 0.95, 0.93), vec3(0.98, 0.45, 0.60), (t - 0.40) / 0.20); // Japan White to Sakura Pink
+    if (t < 0.80) return mix(vec3(0.98, 0.45, 0.60), vec3(0.02, 0.68, 0.38), (t - 0.60) / 0.20); // Sakura Pink to Jade Green
+    return mix(vec3(0.02, 0.68, 0.38), vec3(0.85, 0.02, 0.05), (t - 0.80) / 0.20);         // Jade back to Red
+}
+
+// Geometric Origami / Basket-weave Heart Structure
+vec2 culturalHeart(vec2 p) {
+    p.x *= 1.1;
+    // Layering a structured, angular modulation over the traditional heart shape
+    p.y -= 0.25 * sqrt(abs(p.x)) + 0.04 * cos(p.x * 12.0); 
+    return p;
+}
+
+float hybridFlower(vec2 uv, float cellTime, float numPetals) {
+    float t = cellTime * 1.3;
+    
+    // Dynamic bloom transformation: breathing, folding, and spreading wide
+    float cycle = mod(t * 0.7, 2.0);
+    float bloom = 0.6 + 0.4 * sin(cycle * TAU - (TAU * 0.25));
+    float pWidth = 0.12;
+    
+    if (cycle > 1.0) {
+        float spread = sin((cycle - 1.0) * TAU - (TAU * 0.25)) * 0.5 + 0.5;
+        bloom = 1.0 + spread * 0.4;
+        pWidth = 0.12 + spread * 0.15;
+    }
+
+    float f = 0.0;
+    for(float i = 0.0; i < 16.0; i++) {
+        if(i >= numPetals) break;
+        
+        // Fast, elegant spinning petals
+        vec2 p = rot(-(i / numPetals * TAU + t * 0.6)) * uv;
+        
+        // Origami sharp-edge structural cut inside the petal formula
+        float r = length(p);
+        float a = atan(p.y, p.x);
+        p.y += .42 * .28 - .35 * bloom;
+        
+        // Sharp diamond-taper profile honoring traditional Asian paper folding and African geometric art
+        float body = (1.0 - smoothstep(.60, .85, length(vec2(p.x / pWidth, p.y / .48)))) * (1.0 - smoothstep(0.0, 0.05, abs(p.x) - (0.15 * (1.0 - r))));
+        float tip = smoothstep(-.48 * 0.75, .48 * 0.25, p.y);
+        
+        f += body * tip;
+    }
+    return clamp(f, 0., 1.);
+}
+
+void main() {
+    vec2 uv = gl_FragCoord.xy / u_resolution.xy;
+    vec2 grid = vec2(4.0, 3.0), id = floor(uv * grid), st = (fract(uv * grid) - 0.5) * 2.0;
+    st.x *= (u_resolution.x / grid.x) / (u_resolution.y / grid.y);
+
+    float rand = hash(id);
+    float cellTime = u_time * 1.4 + rand * 9.0;
+
+    // Distribute distinct petal configurations based on region-inspired styles
+    float type = floor(rand * 3.0);
+    float numPetals = type == 0.0 ? 8.0 : (type == 1.0 ? 12.0 : 16.0); // 8 (Africa geometric), 12 (Imperial China), 16 (Japan Chrysanthemum)
+
+    // Structural heart map mutation
+    vec2 morphSt = culturalHeart(st * 1.25);
+    float d = length(morphSt);
+
+    // Hyper-speed color cycling tracking the bloom expansion
+    vec3 col = culturalPalette(d * 0.5 - cellTime * 0.5);
+    float mask = hybridFlower(morphSt, cellTime, numPetals);
+
+    // Rich background that pulls directly from the vivid palette accent colors
+    vec3 bg = mix(vec3(0.04, 0.01, 0.03), col * 0.2, exp(-d * 3.0));
+    vec3 finalColor = mix(bg, col * 1.4, mask);
+
+    // Vignette card system
+    gl_FragColor = vec4(finalColor * smoothstep(1.35, .25, length(st)), 1.0);
+}
+
+#ifdef GL_ES
+precision mediump float;
+#endif
+
+uniform vec2 u_resolution;
+uniform float u_time;
+
+#define TAU 6.28318530718
+
+float hash(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
+mat2 rot(float a) { return mat2(cos(a), -sin(a), sin(a), cos(a)); }
+
+// Mathematical fusion palette: Red/Gold (China), Pink/Ink (Japan), Terracotta/Green (Africa)
+vec3 fusionPalette(float t, float style) {
+    t = fract(t);
+    if (style < 1.0) {
+        return mix(vec3(0.9, 0.02, 0.05), vec3(1.0, 0.75, 0.0), smoothstep(0.0, 1.0, sin(t * TAU) * 0.5 + 0.5));
+    } else if (style < 2.0) {
+        return mix(vec3(0.04, 0.02, 0.08), vec3(1.0, 0.55, 0.7), t);
+    } else {
+        return mix(vec3(0.8, 0.35, 0.1), vec3(0.0, 0.85, 0.45), abs(sin(t * TAU)));
+    }
+}
+
+// Interlocking Heart Lattice Map
+vec2 sacredLattice(vec2 p, float t) {
+    p.x *= 1.15;
+    p.y -= 0.28 * sqrt(abs(p.x)) + 0.05 * sin(p.x * 18.0 + t * 4.0);
+    return p;
+}
+
+// Geometric Lotus-Protea Hybrid Flower
+float structuralFlower(vec2 uv, float cellTime, float numPetals) {
+    float t = cellTime * 1.5;
+    float bloom = 0.5 + (sin(t * 0.8) * 0.5 + 0.5) * 0.4 + (sin(t * 1.6) * 0.5 + 0.5) * 0.3;
+    float width = 0.08 + (sin(t * 1.6) * 0.5 + 0.5) * 0.12;
+
+    float f = 0.0;
+    for(float i = 0.0; i < 16.0; i++) {
+        if(i >= numPetals) break;
+        
+        vec2 p = rot(-(i / numPetals * TAU + t * 0.8 + sin(length(uv) * 4.0 - t))) * uv;
+        p.y += .45 * .28 - .38 * bloom;
+        
+        float r = length(p);
+        float geometry = (1.0 - smoothstep(0.5, 0.85, length(vec2(p.x / width, p.y / 0.45)))) 
+                       * (1.0 - smoothstep(0.0, 0.02, abs(p.x) - (0.12 * (1.0 - r))));
+        
+        f += geometry * smoothstep(-0.35, 0.2, p.y);
+    }
+    return clamp(f, 0., 1.) * smoothstep(0.08, 0.22, length(uv));
+}
+
+void main() {
+    vec2 uv = gl_FragCoord.xy / u_resolution.xy;
+    vec2 grid = vec2(4.0, 3.0), id = floor(uv * grid), st = (fract(uv * grid) - 0.5) * 2.0;
+    st.x *= (u_resolution.x / grid.x) / (u_resolution.y / grid.y);
+
+    float rand = hash(id);
+    float cellTime = u_time * 1.2 + rand * 11.0;
+    float styleIdx = floor(rand * 3.0); 
+    float petals = styleIdx == 0.0 ? 8.0 : (styleIdx == 1.0 ? 12.0 : 16.0);
+
+    vec2 heartSt = sacredLattice(st * 1.25, cellTime);
+    float d = length(heartSt);
+
+    // Moiré ripple effect background
+    float bgWave = sin(heartSt.x * 8.0 + cellTime) * cos(heartSt.y * 8.0 - cellTime);
+    vec3 baseTheme = fusionPalette(d * 0.3 + cellTime * 0.1, styleIdx);
+    vec3 bg = mix(vec3(0.02, 0.01, 0.03), baseTheme * 0.3, exp(-d * 1.5));
+    bg += baseTheme * abs(sin(d * 32.0 - cellTime * 3.0)) * smoothstep(0.1, 0.7, d) * 0.22 * (0.5 + 0.5 * bgWave);
+
+    // Flower foreground composition
+    float mask = structuralFlower(heartSt, cellTime, petals);
+    vec3 flowerCol = fusionPalette(d * 0.6 - cellTime * 0.4, styleIdx) * 1.4;
+    flowerCol += vec3(1.0) * smoothstep(0.4, 0.0, mask) * mask * 0.3;
+
+    gl_FragColor = vec4(mix(bg, flowerCol, mask) * smoothstep(1.35, 0.3, length(st)), 1.0);
+}
+
+One flower pattern: #ifdef GL_ES
+precision mediump float;
+#endif
+
+uniform vec2 u_resolution;
+uniform float u_time;
+
+#define TAU 6.28318530718
+
+mat2 rot(float a) { return mat2(cos(a), -sin(a), sin(a), cos(a)); }
+
+vec3 fusionPalette(float t, float style) {
+    t = fract(t);
+    if (style < 1.0) return mix(vec3(0.95, 0.01, 0.05), vec3(1.0, 0.80, 0.0), smoothstep(0.0, 1.0, sin(t * TAU) * 0.5 + 0.5));
+    if (style < 2.0) return mix(vec3(0.02, 0.01, 0.05), vec3(1.0, 0.45, 0.65), t);
+    return mix(vec3(0.85, 0.25, 0.05), vec3(0.0, 0.95, 0.50), abs(sin(t * TAU)));
+}
+
+void main() {
+    vec2 st = (gl_FragCoord.xy * 2.0 - u_resolution.xy) / u_resolution.y;
+    float t = u_time * 1.5, style = mod(floor(t * 0.12), 3.0);
+    float petals = style == 0.0 ? 8.0 : (style == 1.0 ? 12.0 : 16.0);
+
+    vec2 hst = st * 1.15; hst.x *= 1.15;
+    hst.y -= 0.28 * sqrt(abs(hst.x)) + 0.06 * sin(hst.x * 16.0 + t * 3.5);
+    float d = length(hst), f = 0.0;
+
+    float bloom = 0.5 + (sin(t * 0.8) * 0.5 + 0.5) * 0.4 + (sin(t * 1.6) * 0.5 + 0.5) * 0.3;
+    float w = 0.08 + (sin(t * 1.6) * 0.5 + 0.5) * 0.12;
+
+    for(float i = 0.0; i < 16.0; i++) {
+        if(i >= petals) break;
+        vec2 p = rot(-(i / petals * TAU + t * 0.7 + sin(d * 4.0 - t))) * hst;
+        p.y += 0.126 - 0.38 * bloom;
+        f += (1.0 - smoothstep(0.5, 0.85, length(vec2(p.x / w, p.y / 0.45)))) * (1.0 - smoothstep(0.0, 0.02, abs(p.x) - (0.12 * (1.0 - length(p))))) * smoothstep(-0.35, 0.2, p.y);
+    }
+    float mask = clamp(f, 0., 1.) * smoothstep(0.08, 0.22, d);
+
+    // Magnified background illumination, vibrant color cycles, and high-contrast neon waves
+    vec3 theme = fusionPalette(d * 0.35 - t * 0.25, style);
+    vec3 bg = mix(vec3(0.03, 0.01, 0.04), theme * 0.7, exp(-d * 0.8));
+    bg += theme * abs(sin(d * 18.0 - t * 4.0)) * smoothstep(0.05, 0.8, d) * 0.65 * (0.4 + 0.6 * sin(hst.x * 6.0 + t) * cos(hst.y * 6.0 - t));
+    
+    vec3 col = mix(bg, fusionPalette(d * 0.5 + t * 0.3, style) * 1.5 + smoothstep(0.4, 0.0, mask) * mask * 0.4, mask);
+
+    gl_FragColor = vec4(col * smoothstep(1.6, 0.2, length(st)), 1.0);
+}
+
+Love play: #ifdef GL_ES
+precision mediump float;
+#endif
+
+uniform vec2 u_resolution;
+uniform float u_time;
+
+#define TAU 6.28318530718
+
+mat2 rot(float a) { return mat2(cos(a), -sin(a), sin(a), cos(a)); }
+
+// Complex cosine palette engine injecting unique directional bias per region
+vec3 palette(float t, vec3 biasedShift) {
+    vec3 a = vec3(0.5, 0.45, 0.4) + biasedShift * 0.1;
+    vec3 b = vec3(0.5, 0.5, 0.5);
+    vec3 c = vec3(1.0, 1.0, 1.0);
+    vec3 d = vec3(0.0, 0.33, 0.67) + t * 0.1;
+    return a + b * cos(TAU * (c * t + d));
+}
+
+void main() {
+    vec2 st = (gl_FragCoord.xy * 2.0 - u_resolution.xy) / u_resolution.y;
+    float t = u_time * 1.3, d = length(st), f = 0.0;
+
+    // Quantum Heart Domain Warp
+    vec2 hst = rot(t * 0.15 + d * 1.5) * vec2(st.x * 1.1, st.y - 0.3 * sqrt(abs(st.x * 1.1)) - 0.08 * sin(atan(st.y, st.x) * 3.0 + t * 2.0) * exp(-d * d));
+    float hd = length(hst);
+
+    // Multi-layered filament generation
+    for(float i = 0.0; i < 12.0; i++) {
+        vec2 p = rot(-(i / 12.0 * TAU + t * 0.4)) * hst;
+        f += (1.0 - smoothstep(0.02, 0.08, abs(sin(p.x * 35.0 + sin(p.y * 15.0 + t))))) * smoothstep(0.7, 0.1, length(p * vec2(2.5, 1.2)));
+    }
+    float mask = clamp(f, 0.0, 1.0) * smoothstep(0.04, 0.18, hd);
+
+    // High-frequency color chromatic separation (Africa / China / Japan spectrum blend)
+    vec3 africa = palette(hd * 0.4 - t * 0.3, vec3(0.4, 0.2, -0.2));  // Deep Gold / Warm Terracotta
+    vec3 china  = palette(hd * 0.8 + t * 0.5, vec3(0.5, -0.3, -0.3)); // Imperial Vermilion / Vivid Silk Crimson
+    vec3 japan  = palette(atan(hst.y, hst.x) / TAU + t * 0.2, vec3(-0.2, 0.3, 0.5)); // Soft Sakura / Shinto Jade-White
+
+    // Complex color intersection mix via continuous cross-multiplication
+    vec3 dynamicTheme = mix(mix(china, africa, abs(sin(t * 0.5))), japan, abs(cos(hd * 2.0 - t * 0.4)));
+
+    // Moiré ripple interference map with hyper-luminescent contrast boost
+    float ripples = sin(hd * 45.0 - t * 5.0) * sin(hst.x * 24.0 + t) * cos(hst.y * 24.0 - t);
+    vec3 bg = mix(vec3(0.01, 0.0, 0.02), dynamicTheme * 0.8, exp(-hd * 0.7)) + dynamicTheme * abs(ripples) * smoothstep(0.05, 0.9, hd) * 1.2;
+
+    // Master composite introducing iridescent glow highlights along mask edges
+    vec3 flowerCol = palette(hd * 0.5 + t * 0.8, vec3(0.1)) * 1.7 + smoothstep(0.3, 0.0, mask) * dynamicTheme * 0.6;
+    vec3 col = mix(bg, flowerCol, mask);
+
+    gl_FragColor = vec4(col * smoothstep(1.6, 0.2, length(st)), 1.0);
+}
+
+Holding hands: #ifdef GL_ES
+precision mediump float;
+#endif
+
+uniform vec2 u_resolution;
+uniform float u_time;
+
+#define TAU 6.28318530718
+
+mat2 rot(float a) { return mat2(cos(a), -sin(a), sin(a), cos(a)); }
+
+// Streamlined, error-free palette generation
+vec3 touchPalette(float t, float shift) {
+    return vec3(0.5) + vec3(0.5) * cos(TAU * (vec3(t) + vec3(0.0, 0.33, 0.67) + vec3(shift)));
+}
+
+void main() {
+    vec2 st = (gl_FragCoord.xy * 2.0 - u_resolution.xy) / u_resolution.y;
+    float t = u_time * 1.5;
+
+    // Dual coordinate poles mapping out the position of the two hands
+    vec2 handA = st - vec2(-0.35, 0.0);
+    vec2 handB = st - vec2(0.35, 0.0);
+    float dA = length(handA), dB = length(handB), dCenter = length(st);
+
+    // Dynamic angles controlling the interlocking lace fingers
+    float angA = atan(handA.y, handA.x) + sin(dB * 6.0 - t * 2.0) * 0.4;
+    float angB = atan(handB.y, handB.x) - sin(dA * 6.0 - t * 2.0) * 0.4;
+
+    // Highly isolated light paths for the lines (prevents bleeding)
+    float tendrilsA = smoothstep(0.08, 0.0, abs(sin(angA * 5.0 + t))) * exp(-dA * 1.2);
+    float tendrilsB = smoothstep(0.08, 0.0, abs(sin(angB * 5.0 - t))) * exp(-dB * 1.2);
+
+    // Mathematical definition of the handclasp center point
+    float gripArea = exp(-abs(dA - dB) * 5.0) * exp(-dCenter * 1.5);
+
+    // Generating contrasting regional tones
+    vec3 colA = touchPalette(dA * 0.4 - t * 0.2, 0.0); 
+    vec3 colB = touchPalette(dB * 0.4 - t * 0.2, 0.5); 
+    vec3 coreGlow = touchPalette(dCenter * 1.2 + t * 0.6, 0.25);
+
+    // Balanced ambient light distribution
+    vec3 ambientBg = vec3(0.005, 0.002, 0.01) * (1.0 - dCenter);
+    vec3 foreground = mix(colA * tendrilsA, colB * tendrilsB, 0.5);
+    
+    // Controlled central spark representing the physical connection pulse
+    vec3 pulseLight = coreGlow * gripArea * (1.0 + 0.4 * sin(t * 3.5)) * 1.8;
+    
+    // Soft rim lighting along the edges of the interlocking lines
+    float rimLight = (tendrilsA + tendrilsB) * smoothstep(0.1, 0.8, gripArea) * 0.35;
+
+    // Composite master layer (Fixed identifier alignment here)
+    vec3 col = ambientBg + foreground + pulseLight + rimLight;
+    
+    gl_FragColor = vec4(clamp(col, 0.0, 1.0) * smoothstep(1.5, 0.3, length(st)), 1.0);
+}
+
+
+
+return wine;
+    if(id<2.0) return red;
+    if(id<3.0) return rose;
+    if(id<4.0) return coral;
+    if(id<5.0) return blush;
+    if(id<6.0) return cream;
+    if(id<7.0) return gold;
+    if(id<8.0) return jade;
+    if(id<9.0) return teal;
+    return lilac;
+}
+
+float petal(vec2 p,float w,float h){
+    p.y += h*.30;
+    float d = length(vec2(p.x/w,p.y/h));
+    float body = 1.0 - smoothstep(.70,.77,d);
+    float tip = smoothstep(-h*.78,h*.20,p.y);
+    return clamp(body*tip,0.0,1.0);
+}
+
+float miniFlower(vec2 uv, vec2 pos, float scale, float angle, float petals){
+    vec2 p0 = uv - pos;
+    float m = 0.0;
+
+    for(float i=0.0; i<10.0; i++){
+        if(i>=petals) break;
+
+        float a = i/petals*TAU + angle;
+        vec2 p = rot(-a)*p0;
+        p.y -= 0.030*scale;
+
+        m += petal(p,0.010*scale,0.035*scale);
+    }
+
+    float core = circle(p0,0.006*scale,0.004*scale);
+    return clamp(m + core,0.0,1.0);
+}
+
+float petalCluster(vec2 uv, vec2 pos, float scale, float angle){
+    vec2 p = rot(-angle)*(uv-pos);
+    float m = 0.0;
+
+    m += petal(p,0.018*scale,0.060*scale);
+    m += petal(rot(0.8)*p,0.014*scale,0.050*scale)*0.8;
+    m += petal(rot(-0.8)*p,0.014*scale,0.050*scale)*0.8;
+
+    return clamp(m,0.0,1.0);
+}
+
+vec2 curvePoint(float x, float row, float speed, float seed){
+    float y =
+        row
+        + 0.09*sin(x*4.5 + u_time*speed + seed)
+        + 0.035*sin(x*10.0 - u_time*(speed*.7) + seed*2.0);
+
+    return vec2(x,y);
+}
+
+float petalThreadMask(vec2 uv, float row, float speed, float seed, float density){
+    float m = 0.0;
+
+    for(float i=0.0; i<52.0; i++){
+        if(i>=density) break;
+
+        float n = hash(seed+i*13.17);
+        float x = mix(-0.95,0.95,i/(density-1.0));
+
+        vec2 pos = curvePoint(x,row,speed,seed);
+
+        float dx = 0.002;
+        vec2 p2 = curvePoint(x+dx,row,speed,seed);
+        float angle = atan(p2.y-pos.y, p2.x-pos.x);
+
+        float pulse = 1.0 + 0.22*sin(u_time*(0.8+n*.7)+i*.4);
+        float scale = mix(0.70,1.35,n)*pulse;
+
+        if(mod(i,5.0)<1.0){
+            m += miniFlower(uv,pos,scale,angle,5.0+floor(n*3.0));
+        } else {
+            m += petalCluster(uv,pos,scale,angle);
+        }
+    }
+
+    return clamp(m,0.0,1.0);
+}
+
+float travellingWarmth(vec2 uv, float seed, float row, float speed){
+    float x = uv.x;
+    vec2 pos = curvePoint(x, row, speed, seed);
+
+    float nearThread = 1.0 - smoothstep(0.015, 0.055, abs(uv.y - pos.y));
+
+    float wave = sin(uv.x * 10.0 - u_time * 2.4 + seed + uv.y * 4.0);
+    float warmth = smoothstep(0.72, 1.0, wave);
+
+    return nearThread * warmth;
+}
+
+void main(){
+    vec2 uv = (gl_FragCoord.xy*2.0-u_resolution.xy)/u_resolution.y;
+
+    float style = float(STYLE);
+    float seed = SEED + style*19.17;
+
+    vec3 bg = vec3(.075,.0,.025);
+    vec3 col = bg;
+
+    float sA = hash(seed+1.0);
+    float sB = hash(seed+2.0);
+    float sC = hash(seed+3.0);
+
+    float bloom = .5+.5*sin(u_time*(.35+sA*.7)+sB*TAU);
+    float globalScale = mix(.82,1.08,bloom);
+    uv /= globalScale;
+
+    float speed1 = .65+sA*.7;
+    float speed2 = -.75-sB*.6;
+    float speed3 = .55+sC*.9;
+    float speed4 = -.50-sA*.8;
+
+    float t1 = petalThreadMask(uv,-.23,speed1,seed+1.0,42.0);
+    float t2 = petalThreadMask(uv,-.08,speed2,seed+2.0,38.0);
+    float t3 = petalThreadMask(uv, .09,speed3,seed+3.0,44.0);
+    float t4 = petalThreadMask(uv, .24,speed4,seed+4.0,34.0);
+
+    vec3 c1 = mix(pal(1.0),pal(2.0),0.45);
+    vec3 c2 = mix(pal(3.0),pal(5.0),0.50);
+    vec3 c3 = mix(pal(5.0),pal(6.0),0.40);
+    vec3 c4 = mix(pal(2.0),pal(7.0),0.35);
+
+    if(STYLE==1){ c1=pal(2.0); c2=pal(6.0); c3=pal(7.0); c4=pal(3.0); }
+    if(STYLE==2){ c1=pal(2.0); c2=pal(5.0); c3=pal(6.0); c4=pal(7.0); }
+    if(STYLE==3){ c1=pal(9.0); c2=pal(4.0); c3=pal(5.0); c4=pal(7.0); }
+    if(STYLE==4){ c1=pal(1.0); c2=pal(4.0); c3=pal(7.0); c4=pal(6.0); }
+
+    col = mix(col,c1,t1*.90);
+    col = mix(col,c2,t2*.88);
+    col = mix(col,c3,t3*.86);
+    col = mix(col,c4,t4*.84);
+
+    float allThreads = clamp(t1+t2+t3+t4,0.0,1.0);
+
+    float shimmer = sin(uv.x*18.0 + uv.y*12.0 - u_time*2.0 + seed);
+    shimmer = smoothstep(.72,1.0,shimmer);
+
+    col += pal(6.0)*shimmer*allThreads*.24;
+
+    float warm =
+        travellingWarmth(uv,seed+1.0,-.23,speed1) +
+        travellingWarmth(uv,seed+2.0,-.08,speed2) +
+        travellingWarmth(uv,seed+3.0,.09,speed3) +
+        travellingWarmth(uv,seed+4.0,.24,speed4);
+
+    warm = clamp(warm,0.0,1.0);
+    col += pal(6.0) * warm * allThreads * 0.28;
+
+    float corePulse = .5+.5*sin(u_time*1.2+seed);
+    float glow = exp(-length(uv)*5.5)*(.10+.22*corePulse);
+    col += mix(pal(2.0),pal(6.0),corePulse)*glow;
+
+    float bgWave = sin(uv.x*3.0 + uv.y*5.0 + u_time*.35);
+    col += vec3(.22,.02,.06)*bgWave*.045;
+
+    float vig = smoothstep(1.35,.22,length(uv));
+    col *= vig;
+
+    col = pow(clamp(col,0.0,1.0),vec3(.9));
+
+    gl_FragColor = vec4(col,1.0);
+}
+
+LMN1.WzMsOCwyNzg4LCJmZjE0MzgiLCJmZjJkNzgiLCJmZjEzMzkiLCJmZjAwMDAiLCJmZjAwMDAiLCIxNjo5IiwxMSwwLjYsMS4wNCwxLjI2LDAuOTIsNS42MDMsMCwwLjQ1LDEsMC44Nyw0MSw5OCwwLjU5LDAuNDcxLDAuMTU1LDk0LDcwLDAuMDE4LDAuMjksMC42NiwwLjQ0LDEwLjUsMCwyLDAsMC42LDEsOSwzLDAuNTk5LDIsMywxLDAsMC45NDcsMC45MzMsMC45MTYsMC4yODgsMC45Mjdd

@@ -1,0 +1,139 @@
+Use this as the closure museum gallery artifact
+
+This is a Fluid design — generative WebGL art from https://fluid.krackeddevs.com.
+Engine: Flow  ·  Palette: OCEAN  ·  Aspect: 1:1
+Surface: Square
+Zoom 3.20  ·  Warp 1.3  ·  Speed 2.40  ·  Grain 0.000  ·  Seed 48
+Open / remix: https://fluid.krackeddevs.com/#p=2.4,3.2,1.3,0,1,10,0,2,48,0,0,1,0,0,1
+With the Fluid MCP, call decode_link on that URL to load it exactly; otherwise recreate it with create_piece using the values above.
+
+This is a Fluid design — generative WebGL art from https://fluid.krackeddevs.com.
+Engine: Gyroid  ·  Palette: MINT  ·  Aspect: 1:1
+Surface: ASCII, pixelate 48
+Zoom 1.55  ·  Warp 5.0  ·  Speed 2.90  ·  Grain 0.125  ·  Seed 40
+Open / remix: https://fluid.krackeddevs.com/#p=2.9,1.55,5,0.125,48,4,0,5,40,0,0,1,0,0,3,2
+With the Fluid MCP, call decode_link on that URL to load it exactly; otherwise recreate it with create_piece using the values above.
+
+This is a Fluid design — generative WebGL art from https://fluid.krackeddevs.com.
+Engine: Gyroid  ·  Palette: MINT  ·  Aspect: 1:1
+Surface: Square
+Zoom 2.25  ·  Warp 5.0  ·  Speed 2.90  ·  Grain 0.125  ·  Seed 40
+Open / remix: https://fluid.krackeddevs.com/#p=2.9,2.25,5,0.125,1,10,0,5,40,0,0,1,0,0,3
+With the Fluid MCP, call decode_link on that URL to load it exactly; otherwise recreate it with create_piece using the values above.
+
+closure: LMN1.WzMsNiw2MzA4LCJiOGZmMmUiLCIxZmQ5YTQiLCIwYTdhNWMiLCJlYWZmZDAiLCIwNDA3MGEiLCIxNjo5Iiw1LjMxLDAuODMsMS4wMjcsMC45NTIsMS40MzIsMy41OTksMS4zNDMsMC4zMjUsMC4yNzYsMC4zODgsMzIsMjU1LDAuMTY5LDAuMDQyLDAuMDIyLDEzMCwyMywwLjA5MywwLjIwNCwxLjI1NCwwLjg0Myw2LDAsMiwwLDAuNiwxLDksMiwwLjUxOSw3LDQsMyw0LDAuNjExLDAuMDY1LDAuNTQ2LDAuNDE2LDAuNjMyXQ
+
+LMN1.WzMsMCw4MjE1LCIwZTNhNWMiLCIyZTdmYjgiLCI5ZmQ0ZTgiLCIxNjIyMmUiLCIwMzA2MDgiLCIxNjo5IiwzMCwwLjY5LDEuMDgsMS4yMiwwLjUsNy40LDAuOTEsMC40NSwxLDAuODcsNDksMTAxLDAuMzksMC40NzEsMC4wNiw5NCwzNCwwLjM2LDAuMjksMC42OSwwLjQ0LDcuNSwwLDIsMCwwLjYsMCwzLDEsMC45MDcsNSwyLDAsMiwxLjA0LDAuMjQxLDAuNzU2LDAuNjg1LDAuMjM1XQ
+
+LMN1.WzMsNCw4MjE1LCIwZTNhNWMiLCIyZTdmYjgiLCI5ZmQ0ZTgiLCIxNjIyMmUiLCIwMzA2MDgiLCIxNjo5Iiw0MSwwLjY1LDEuMDQsMS4yMiwwLjYyLDUuNSwxLjIsMC43NiwxLDAuNjQsNDksNTUsMC4zOSwwLjQ3MSwwLjIxNSw5NCwzNCwwLjQ2LDAuMjksMS4wMiwwLjg3LDcuNSwwLDIsMCwwLjYsMCwzLDEsMC45MDcsNSwyLDAsMiwxLjA0LDAuMjQxLDAuNzU2LDAuNjg1LDAuMjM1XQ
+
+LMN1.WzMsNCw2MDQ1LCIwZTNhNWMiLCIyZTdmYjgiLCI5ZmQ0ZTgiLCIxNjIyMmUiLCIwMzA2MDgiLCIxNjo5IiwxMDYsMC4yNSwxLjM5LDEuMjgsMC41OCw3LjQsMS42NSwwLjc2LDAuMjEsMS4xMiw1OCw1MSwwLjUxLDAuNjEsMC4yMTUsOTQsMzQsMC40NiwwLjI5LDEuMDIsMC44Nyw3LjUsMCwyLDAsMC42LDEsMTEsNSwwLjY4Nyw2LDMsMSwzLDAuNDcsMC4xODYsMC4yMTcsMC41NjYsMC41NF0
+#ifdef GL_ES
+precision mediump float;
+#endif
+
+uniform float u_time;
+uniform vec2 u_resolution;
+
+#define BASE   vec3(0.725, 0.796, 0.890)
+#define WASH   vec3(0.867, 0.922, 0.980)
+#define SHADOW vec3(0.557, 0.659, 0.784)
+#define DEEP   vec3(0.012, 0.024, 0.055)
+
+float hash21(vec2 p)
+{
+    p = fract(p * vec2(123.34, 456.21));
+    p += dot(p, p + 45.32);
+    return fract(p.x * p.y);
+}
+
+float box(vec2 p, vec2 b)
+{
+    vec2 d = abs(p) - b;
+    float outside = length(max(d, 0.0));
+    float inside = min(max(d.x, d.y), 0.0);
+    return 1.0 - smoothstep(0.0, 0.015, outside + inside);
+}
+
+// Generates the floating shapes
+float glyph(vec2 p, float id)
+{
+    float g = 0.0;
+
+    if (id < 0.25)
+    {
+        g += box(p, vec2(0.04, 0.28));
+        g += box(p - vec2(0.0, -0.38), vec2(0.05, 0.05));
+    }
+    else if (id < 0.5)
+    {
+        g += box(p - vec2(-0.12, 0.0), vec2(0.04, 0.28));
+        g += box(p - vec2(0.12, 0.0), vec2(0.04, 0.28));
+        g += box(p, vec2(0.20, 0.035));
+    }
+    else if (id < 0.75)
+    {
+        g += box(p + vec2(0.12, -0.12), vec2(0.18, 0.035));
+        g += box(p - vec2(0.12, 0.12), vec2(0.18, 0.035));
+    }
+    else
+    {
+        g += box(p, vec2(0.22, 0.035));
+        g += box(p, vec2(0.035, 0.22));
+    }
+
+    return g;
+}
+
+void main()
+{
+    vec2 uv = (gl_FragCoord.xy - 0.5 * u_resolution.xy) / u_resolution.y;
+
+    // Prevent division by zero at the exact center pixel
+    float r = max(length(uv), 0.0001); 
+    float a = atan(uv.y, uv.x);
+
+    // TUNNEL MATH: Map 2D space into an infinite 3D cylinder
+    // 1.0 / r creates the depth (Z-axis). The a / 6.28 is the rotation around the walls.
+    float depth = 0.4 / r;
+    vec2 tunnelUV = vec2(a / 6.28318, depth);
+
+    // MOVEMENT SPEED: 
+    // Subtracting from the Y axis makes us rush "forward" down the tunnel.
+    // Adding to the X axis gives us a gentle spin as we fall.
+    tunnelUV.y -= u_time * 3.5; // Change 3.5 to make the fall faster/slower
+    tunnelUV.x += u_time * 0.15; 
+
+    // Grid mapping on the walls of the tunnel
+    vec2 cells = vec2(20.0, 20.0); // How many glyphs wrap around the cylinder
+    vec2 gridUV = tunnelUV * cells;
+
+    vec2 id = floor(gridUV);
+    vec2 gv = fract(gridUV) - 0.5;
+
+    // Generate random values per grid cell for the glyphs
+    float rnd = hash21(id);
+    float appear = step(0.45, rnd);
+
+    // Draw the glyph in this cell
+    float g = glyph(gv, rnd);
+
+    // Start with the deep background color
+    vec3 col = DEEP;
+
+    // Add a fast pulsing/flickering effect
+    float flicker = 0.55 + 0.45 * sin(u_time * 12.0 + rnd * 20.0);
+
+    // Add the glowing glyphs to the walls
+    col += WASH * g * appear * flicker;
+
+    // FOG & DEPTH SHADOW:
+    // Make the deep center of the hole fade to black (r approaches 0).
+    // And gently fade out the edges near the camera to focus the eye on the fall.
+    float centerHoleFade = smoothstep(0.0, 0.2, r); 
+    float cameraEdgeFade = smoothstep(1.5, 0.3, r); 
+    
+    col *= centerHoleFade * cameraEdgeFade;
+
+    gl_FragColor = vec4(col, 1.0);
+}
