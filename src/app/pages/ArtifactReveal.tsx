@@ -209,7 +209,7 @@ export function ArtifactReveal() {
               fontFamily: "Georgia, serif",
               fontSize: "1.05rem",
               fontStyle: "italic",
-              color: "rgba(255,255,255,0.6)",
+              color: "rgba(255,255,255,0.92)",
               lineHeight: 1.8,
             }}
           >
@@ -230,11 +230,11 @@ export function ArtifactReveal() {
           >
             {artifact.avatarInitials}
           </div>
-          <span className="text-sm" style={{ color: "rgba(255,255,255,0.4)" }}>
+          <span className="text-sm" style={{ color: "rgba(255,255,255,0.72)" }}>
             {artifact.creatorDisplayName}
           </span>
-          <span style={{ color: "rgba(255,255,255,0.2)" }}>·</span>
-          <span className="text-xs" style={{ color: "rgba(255,255,255,0.25)" }}>
+          <span style={{ color: "rgba(255,255,255,0.55)" }} aria-hidden="true">·</span>
+          <span className="text-xs" style={{ color: "rgba(255,255,255,0.7)" }}>
             {dateStr}
           </span>
         </motion.div>
@@ -249,9 +249,9 @@ export function ArtifactReveal() {
           <span
             className="text-xs px-3 py-1 rounded-full"
             style={{
-              background: "rgba(255,255,255,0.05)",
-              border: "1px solid rgba(255,255,255,0.1)",
-              color: "rgba(255,255,255,0.3)",
+              background: "rgba(255,255,255,0.08)",
+              border: "1px solid rgba(255,255,255,0.2)",
+              color: "rgba(255,255,255,0.75)",
             }}
           >
             {artifact.visibility === "public"

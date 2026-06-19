@@ -1,0 +1,69 @@
+/* ─── Accessibility primitives ───────────────────────────────────────────── */
+
+/* Universal focus-visible ring. Many components use outline:none with no
+   replacement, leaving keyboard users without any focus indicator. This
+   provides a clear, theme-friendly default that components can still override. */
+:focus-visible {
+  outline: 2px solid #d8c8ff;
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+
+/* Don't double-up the outline for elements that already manage their own visible
+   focus state (the carousel arrow buttons, etc.). They can opt-out by adding the
+   data-no-focus-ring attribute. */
+[data-no-focus-ring]:focus-visible {
+  outline: none;
+}
+
+/* Skip-to-content link. Hidden until focused; lands keyboard users past the
+   header to the main content of the page. */
+.skip-link {
+  position: fixed;
+  top: 0;
+  left: 0;
+  background: #fff;
+  color: #04030a;
+  padding: 10px 16px;
+  border-radius: 0 0 10px 0;
+  font-weight: 600;
+  font-size: 13px;
+  text-decoration: none;
+  transform: translateY(-110%);
+  transition: transform 0.18s ease-in-out;
+  z-index: 1000;
+}
+.skip-link:focus {
+  transform: translateY(0);
+  outline: 3px solid #6750ff;
+  outline-offset: -3px;
+}
+
+/* Screen-reader-only utility for visually hidden text that should still be
+   announced (form helper text, live-region descriptions, etc). */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* Respect prefers-reduced-motion globally. Anything not explicitly guarded in
+   code gets capped to near-zero duration. Components that need to fully disable
+   animation (the shader loop, framer-motion springs) should still check the
+   media query in JS, but this is the safety net. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}

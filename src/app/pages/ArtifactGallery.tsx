@@ -126,7 +126,7 @@ export function ArtifactGallery() {
               >
                 Museum of Artifacts
               </h1>
-              <p className="mt-1 text-sm italic opacity-40" style={{ fontFamily: "'Cormorant Garamond', serif" }}>
+              <p className="mt-1 text-sm italic" style={{ fontFamily: "'Cormorant Garamond', serif", color: "rgba(255,255,255,0.85)" }}>
                 Living relics of unsent messages, emotions given form.
               </p>
             </div>
@@ -144,7 +144,7 @@ export function ArtifactGallery() {
                     style={{
                       background: is3D ? accentColor + "26" : "rgba(255,255,255,0.04)",
                       border: `1px solid ${is3D ? accentColor + "55" : "rgba(255,255,255,0.1)"}`,
-                      color: is3D ? accentColor : "rgba(255,255,255,0.55)",
+                      color: is3D ? accentColor : "rgba(255,255,255,0.85)",
                     }}
                     aria-label={is3D ? "Switch to grid view" : "Switch to 3D flow view"}
                   >
@@ -193,10 +193,10 @@ export function ArtifactGallery() {
               animate={{ opacity: 1 }}
               className="flex flex-col items-center justify-center py-24"
             >
-              <p style={{ fontFamily: "Georgia, serif", fontSize: "1.1rem", color: "rgba(255,255,255,0.25)", fontStyle: "italic" }}>
+              <p style={{ fontFamily: "Georgia, serif", fontSize: "1.1rem", color: "rgba(255,255,255,0.78)", fontStyle: "italic" }}>
                 No artifacts found.
               </p>
-              <p className="mt-2 text-xs" style={{ color: "rgba(255,255,255,0.15)" }}>
+              <p className="mt-2 text-xs" style={{ color: "rgba(255,255,255,0.65)" }}>
                 Be the first to leave something here.
               </p>
             </motion.div>

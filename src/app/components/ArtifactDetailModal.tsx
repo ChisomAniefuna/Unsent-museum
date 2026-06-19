@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { motion } from "motion/react";
 import { X, Heart, Share2, Download, Flag, ArrowRight } from "lucide-react";
 import { Artifact } from "../data/artifacts";
@@ -9,6 +9,7 @@ import { useLiked, toggleLike, likeCount } from "../hooks/useLikeStore";
 import { CryingMaskRender } from "./CryingMaskCard";
 import { SadnessHeadsRender } from "./SadnessHeadsCard";
 import { downloadArtifact } from "./downloadArtifact";
+import { decodeGenes, isUberShader } from "../data/uberGenes";
 
 interface Props {
   artifact: Artifact;
@@ -23,6 +24,27 @@ export function ArtifactDetailModal({ artifact, onClose }: Props) {
   const likes = likeCount(artifact.likes, liked);
   const [copied, setCopied] = useState(false);
   const previewRef = useRef<HTMLDivElement>(null);
+  const titleId = `artifact-title-${artifact.id}`;
+
+  // Decode the formula strip only when the artifact's shader is one of the
+  // five emotion uber-shaders. Hand-crafted shaders don't have a gene system,
+  // so they don't get a formula readout.
+  const formula = isUberShader(artifact.shader?.id, artifact.emotion)
+    ? decodeGenes(artifact.dna.seed, artifact.emotion)
+    : null;
+
+  // Esc closes; return focus to whatever was focused before the modal opened.
+  useEffect(() => {
+    const previouslyFocused = document.activeElement as HTMLElement | null;
+    function onKey(e: KeyboardEvent) {
+      if (e.key === "Escape") onClose();
+    }
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("keydown", onKey);
+      previouslyFocused?.focus?.();
+    };
+  }, [onClose]);
 
   // Share: native share sheet where available (mobile), otherwise copy a real,
   // openable link (/reveal/:id) and show "Copied!" so the click has visible effect.
@@ -65,6 +87,9 @@ export function ArtifactDetailModal({ artifact, onClose }: Props) {
       onClick={(e) => e.target === e.currentTarget && onClose()}
     >
       <motion.div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={titleId}
         initial={{ scale: 0.92, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
         exit={{ scale: 0.92, opacity: 0 }}
@@ -130,6 +155,7 @@ export function ArtifactDetailModal({ artifact, onClose }: Props) {
 
             {/* Title */}
             <h2
+              id={titleId}
               style={{
                 fontFamily: "Georgia, serif",
                 fontSize: "1.5rem",
@@ -145,7 +171,7 @@ export function ArtifactDetailModal({ artifact, onClose }: Props) {
             <p
               style={{
                 fontStyle: "italic",
-                color: "rgba(255,255,255,0.5)",
+                color: "rgba(255,255,255,0.9)",
                 fontSize: "0.875rem",
                 lineHeight: 1.7,
               }}
@@ -163,7 +189,7 @@ export function ArtifactDetailModal({ artifact, onClose }: Props) {
                   style={{
                     fontFamily: "Georgia, serif",
                     fontStyle: "italic",
-                    color: "rgba(255,255,255,0.55)",
+                    color: "rgba(255,255,255,0.92)",
                     fontSize: "0.875rem",
                     lineHeight: 1.8,
                   }}
@@ -173,10 +199,45 @@ export function ArtifactDetailModal({ artifact, onClose }: Props) {
                     : artifact.messageExcerpt}"
                 </p>
                 {artifact.messageVisibility === "excerpt" && (
-                  <p className="mt-2 text-xs" style={{ color: "rgba(255,255,255,0.2)" }}>
+                  <p className="mt-2 text-xs" style={{ color: "rgba(255,255,255,0.65)" }}>
                     The full message is private.
                   </p>
                 )}
+              </div>
+            )}
+
+            {/* Formula strip - only present for uber-shader artifacts. Acts as the
+                artifact's permanent identity: anyone with the same emotion +
+                seed reproduces this exact piece. Modeled on DESIGN≒FORMULA's
+                approach of printing the math under the work. */}
+            {formula && (
+              <div
+                className="px-3 py-2 rounded-lg"
+                style={{
+                  background: "rgba(255,255,255,0.04)",
+                  border: "1px solid rgba(255,255,255,0.08)",
+                }}
+              >
+                <div className="flex items-center justify-between gap-2 mb-1">
+                  <span
+                    className="text-[9px] tracking-[0.22em] uppercase"
+                    style={{ color: "rgba(255,255,255,0.6)", fontFamily: "ui-monospace, Menlo, monospace" }}
+                  >
+                    Formula
+                  </span>
+                  <span
+                    className="text-[10px] tabular-nums"
+                    style={{ color: "rgba(255,255,255,0.7)", fontFamily: "ui-monospace, Menlo, monospace" }}
+                  >
+                    seed {formula.seed}
+                  </span>
+                </div>
+                <div
+                  className="text-[11px] leading-relaxed"
+                  style={{ color: "rgba(255,255,255,0.92)", fontFamily: "ui-monospace, Menlo, monospace" }}
+                >
+                  {formula.field} · {formula.domain} · {formula.palette} · {formula.surface} · {formula.decay}
+                </div>
               </div>
             )}
 
@@ -189,10 +250,10 @@ export function ArtifactDetailModal({ artifact, onClose }: Props) {
                 {artifact.avatarInitials}
               </div>
               <div>
-                <p className="text-sm" style={{ color: "rgba(255,255,255,0.6)" }}>
+                <p className="text-sm" style={{ color: "rgba(255,255,255,0.85)" }}>
                   {artifact.creatorDisplayName}
                 </p>
-                <p className="text-xs" style={{ color: "rgba(255,255,255,0.2)" }}>
+                <p className="text-xs" style={{ color: "rgba(255,255,255,0.7)" }}>
                   {dateStr}
                 </p>
               </div>
@@ -206,7 +267,7 @@ export function ArtifactDetailModal({ artifact, onClose }: Props) {
                 style={{
                   background: liked ? "#ff6b7a20" : "rgba(255,255,255,0.05)",
                   border: `1px solid ${liked ? "#ff6b7a50" : "rgba(255,255,255,0.1)"}`,
-                  color: liked ? "#ff6b7a" : "rgba(255,255,255,0.5)",
+                  color: liked ? "#ff6b7a" : "rgba(255,255,255,0.92)",
                 }}
               >
                 <Heart size={12} fill={liked ? "#ff6b7a" : "none"} />
@@ -219,7 +280,7 @@ export function ArtifactDetailModal({ artifact, onClose }: Props) {
                 style={{
                   background: copied ? `${accentColor}20` : "rgba(255,255,255,0.05)",
                   border: `1px solid ${copied ? accentColor + "50" : "rgba(255,255,255,0.1)"}`,
-                  color: copied ? accentColor : "rgba(255,255,255,0.5)",
+                  color: copied ? accentColor : "rgba(255,255,255,0.92)",
                 }}
               >
                 <Share2 size={12} />
@@ -232,7 +293,7 @@ export function ArtifactDetailModal({ artifact, onClose }: Props) {
                 style={{
                   background: "rgba(255,255,255,0.05)",
                   border: "1px solid rgba(255,255,255,0.1)",
-                  color: "rgba(255,255,255,0.5)",
+                  color: "rgba(255,255,255,0.92)",
                 }}
               >
                 <Download size={12} />
@@ -241,7 +302,8 @@ export function ArtifactDetailModal({ artifact, onClose }: Props) {
 
               <button
                 className="ml-auto flex items-center gap-1 px-3 py-2 rounded-full text-xs transition-all hover:opacity-70"
-                style={{ color: "rgba(255,255,255,0.2)" }}
+                style={{ color: "rgba(255,255,255,0.72)" }}
+                aria-label="Report artifact"
               >
                 <Flag size={11} />
               </button>

@@ -102,10 +102,18 @@ export function ShaderCarousel3D({ artifacts, accentColor, onSelect, showTags }:
   }
 
   return (
-    <div className="relative w-full select-none" style={{ touchAction: "pan-y" }}>
+    <div
+      className="relative w-full select-none"
+      style={{ touchAction: "pan-y" }}
+      role="region"
+      aria-roledescription="carousel"
+      aria-label="Artifact gallery"
+    >
       <div
         className="relative mx-auto"
         style={{ height: shaderH + 120, perspective: 1700, perspectiveOrigin: "50% 45%" }}
+        tabIndex={0}
+        aria-label={`Showing artifact ${active + 1} of ${total}. Use left and right arrow keys to navigate.`}
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
         onPointerUp={onPointerUp}
@@ -132,6 +140,11 @@ export function ShaderCarousel3D({ artifacts, accentColor, onSelect, showTags }:
           return (
             <div
               key={artifact.id}
+              role="group"
+              aria-roledescription="slide"
+              aria-label={`${artifact.title}, ${artifact.emotion}, ${i + 1} of ${total}`}
+              aria-current={isCenter ? "true" : undefined}
+              aria-hidden={!isCenter}
               className="absolute left-1/2 top-1/2"
               style={{
                 width: cardW,
@@ -198,7 +211,7 @@ export function ShaderCarousel3D({ artifacts, accentColor, onSelect, showTags }:
                   {artifact.title}
                 </p>
                 {showTags && (
-                  <div className="mt-1 flex items-center justify-center text-[11px]" style={{ color: "rgba(255,255,255,0.4)" }}>
+                  <div className="mt-1 flex items-center justify-center text-[11px]" style={{ color: "rgba(255,255,255,0.92)" }}>
                     <span className="uppercase tracking-[0.18em]" style={{ color: room?.palette.glow || accentColor }}>
                       {artifact.emotion}
                     </span>
@@ -216,7 +229,7 @@ export function ShaderCarousel3D({ artifacts, accentColor, onSelect, showTags }:
           <ChevronLeft size={20} />
         </CarouselButton>
 
-        <span className="text-xs tabular-nums tracking-widest" style={{ color: "rgba(255,255,255,0.4)", fontFamily: "'Cinzel', serif" }}>
+        <span aria-live="polite" className="text-xs tabular-nums tracking-widest" style={{ color: "rgba(255,255,255,0.78)", fontFamily: "'Cinzel', serif" }}>
           {active + 1} / {total}
         </span>
 
@@ -225,7 +238,7 @@ export function ShaderCarousel3D({ artifacts, accentColor, onSelect, showTags }:
         </CarouselButton>
       </div>
 
-      <p className="mt-4 text-center text-[11px] italic" style={{ color: "rgba(255,255,255,0.25)", fontFamily: "'Cormorant Garamond', serif" }}>
+      <p className="mt-4 text-center text-[11px] italic" style={{ color: "rgba(255,255,255,0.85)", fontFamily: "'Cormorant Garamond', serif" }}>
         Drag, scroll, or use ← → · click an artifact to open it
       </p>
     </div>

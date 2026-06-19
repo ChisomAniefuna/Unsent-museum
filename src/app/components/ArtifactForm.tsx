@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useId, useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { X } from "lucide-react";
 import { ROOMS } from "../data/rooms";
@@ -28,6 +28,22 @@ export function ArtifactForm({ defaultEmotion, accentColor, roomImage, onClose, 
   const [isAnonymous, setIsAnonymous] = useState(false);
   const [generating, setGenerating] = useState(false);
   const [genStage, setGenStage] = useState(0);
+  const titleId = useId();
+  const messageId = useId();
+  const counterId = useId();
+
+  // Esc closes (when not mid-generation, to avoid orphaning a request).
+  useEffect(() => {
+    const previouslyFocused = document.activeElement as HTMLElement | null;
+    function onKey(e: KeyboardEvent) {
+      if (e.key === "Escape" && !generating) onClose();
+    }
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("keydown", onKey);
+      previouslyFocused?.focus?.();
+    };
+  }, [onClose, generating]);
 
   async function handleGenerate() {
     if (!message.trim()) return;
@@ -76,6 +92,9 @@ export function ArtifactForm({ defaultEmotion, accentColor, roomImage, onClose, 
       </div>
 
       <motion.div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={titleId}
         initial={{ y: 40, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         exit={{ y: 40, opacity: 0 }}
@@ -117,6 +136,7 @@ export function ArtifactForm({ defaultEmotion, accentColor, roomImage, onClose, 
         <div className="relative z-10 flex items-start justify-between p-6 pb-2">
           <div>
             <h2
+              id={titleId}
               style={{
                 fontFamily: "'Cormorant Garamond', serif",
                 fontSize: "1.35rem",
@@ -126,20 +146,21 @@ export function ArtifactForm({ defaultEmotion, accentColor, roomImage, onClose, 
             >
               Leave something unsent.
             </h2>
-            <p className="text-[10px] uppercase tracking-widest mt-1" style={{ color: "rgba(255,255,255,0.3)" }}>
+            <p className="text-[10px] uppercase tracking-widest mt-1" style={{ color: "rgba(255,255,255,0.92)" }}>
               Transform your message into a living artifact.
             </p>
           </div>
           {!generating && (
             <button
               onClick={onClose}
+              aria-label="Close form"
               className="flex items-center justify-center rounded-full transition-all hover:bg-white/10"
-              style={{ 
-                width: 40, 
-                height: 40, 
-                background: "rgba(255,255,255,0.16)", 
+              style={{
+                width: 40,
+                height: 40,
+                background: "rgba(255,255,255,0.16)",
                 border: "1.5px solid rgba(255,255,255,0.36)",
-                color: "rgba(255,255,255,0.72)" 
+                color: "rgba(255,255,255,0.85)"
               }}
             >
               <X size={18} />
@@ -159,24 +180,30 @@ export function ArtifactForm({ defaultEmotion, accentColor, roomImage, onClose, 
 
             <div>
               <div className="flex items-baseline justify-between mb-2">
-                <label className="block text-[10px] tracking-[0.2em] uppercase font-semibold" style={{ color: "rgba(255,255,255,0.4)" }}>
+                <label htmlFor={messageId} className="block text-[10px] tracking-[0.2em] uppercase font-semibold" style={{ color: "rgba(255,255,255,0.92)" }}>
                   Unsent Message
                 </label>
-                {/* The message lives on a small museum card, so it is capped at 180 characters. */}
+                {/* The message lives on a small museum card, so it is capped at 180 characters.
+                    aria-live so screen readers announce the count as the user types. */}
                 <span
+                  id={counterId}
+                  aria-live="polite"
+                  aria-atomic="true"
                   className="text-[10px] tabular-nums tracking-widest"
-                  style={{ color: message.length >= MESSAGE_MAX ? accentColor : "rgba(255,255,255,0.35)" }}
+                  style={{ color: message.length >= MESSAGE_MAX ? accentColor : "rgba(255,255,255,0.88)" }}
                 >
                   {message.length}/{MESSAGE_MAX}
                 </span>
               </div>
               <textarea
+                id={messageId}
+                aria-describedby={counterId}
                 value={message}
                 onChange={(e) => setMessage(e.target.value.slice(0, MESSAGE_MAX))}
                 maxLength={MESSAGE_MAX}
                 placeholder="I never told you that…"
                 rows={5}
-                className="w-full resize-none rounded-xl p-4 text-sm outline-none transition-all"
+                className="w-full resize-none rounded-xl p-4 text-sm transition-all"
                 style={{
                   background: "rgba(255,255,255,0.11)",
                   backdropFilter: "blur(16px) saturate(160%)",
@@ -204,7 +231,7 @@ export function ArtifactForm({ defaultEmotion, accentColor, roomImage, onClose, 
                 )}
               </div>
               <label className="flex items-center gap-2 cursor-pointer shrink-0 pb-3">
-                <span className="text-[10px] uppercase tracking-widest" style={{ color: "rgba(255,255,255,0.4)" }}>Anonymous</span>
+                <span className="text-[10px] uppercase tracking-widest" style={{ color: "rgba(255,255,255,0.92)" }}>Anonymous</span>
                 <button
                   type="button"
                   aria-pressed={isAnonymous}
@@ -232,7 +259,7 @@ export function ArtifactForm({ defaultEmotion, accentColor, roomImage, onClose, 
               className="px-6 py-2.5 rounded-full text-[10px] tracking-[0.2em] uppercase transition-all whitespace-nowrap"
               style={{
                 background: message ? "rgba(255,255,255,0.92)" : "rgba(255,255,255,0.11)",
-                color: message ? "#111827" : "rgba(255,255,255,0.34)",
+                color: message ? "#111827" : "rgba(255,255,255,0.62)",
                 border: `1.5px solid ${message ? "rgba(255,255,255,0.95)" : "rgba(255,255,255,0.22)"}`,
                 boxShadow: message ? "0px 12px 30px rgba(0,0,0,0.28), inset 0 1px 0 rgba(255,255,255,0.75)" : "none",
                 cursor: message ? "pointer" : "not-allowed",
@@ -254,17 +281,19 @@ function FormInput({
 }: {
   label: string; value: string; onChange: (v: string) => void; placeholder: string; accentColor: string;
 }) {
+  const inputId = useId();
   return (
     <div>
-      <label className="block text-[10px] tracking-[0.2em] uppercase mb-2 font-semibold" style={{ color: "rgba(255,255,255,0.4)" }}>
+      <label htmlFor={inputId} className="block text-[10px] tracking-[0.2em] uppercase mb-2 font-semibold" style={{ color: "rgba(255,255,255,0.92)" }}>
         {label}
       </label>
       <input
+        id={inputId}
         type="text"
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
-        className="w-full rounded-lg px-4 py-2.5 text-sm outline-none transition-all"
+        className="w-full rounded-lg px-4 py-2.5 text-sm transition-all"
         style={{
           background: "rgba(255,255,255,0.11)",
           backdropFilter: "blur(16px) saturate(160%)",
@@ -311,7 +340,7 @@ function GenLoader({ stage, stages, accentColor }: { stage: number; stages: stri
             fontFamily: "Georgia, serif",
             fontSize: "1rem",
             fontStyle: "italic",
-            color: "rgba(255,255,255,0.75)",
+            color: "rgba(255,255,255,0.88)",
           }}
         >
           {stages[stage]}

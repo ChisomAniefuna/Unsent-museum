@@ -111,7 +111,7 @@ export function ShaderArtifactCard({ artifact, onClick, onLike, showTag }: Props
         {artifact.messageExcerpt && (
           <p
             className="text-xs line-clamp-2 leading-relaxed"
-            style={{ color: "rgba(255,255,255,0.35)", fontStyle: "italic" }}
+            style={{ color: "rgba(255,255,255,0.9)", fontStyle: "italic" }}
           >
             "{artifact.messageExcerpt}"
           </p>
@@ -125,10 +125,10 @@ export function ShaderArtifactCard({ artifact, onClick, onLike, showTag }: Props
           >
             {artifact.avatarInitials}
           </div>
-          <span className="text-xs" style={{ color: "rgba(255,255,255,0.3)" }}>
+          <span className="text-xs" style={{ color: "rgba(255,255,255,0.75)" }}>
             {artifact.creatorDisplayName}
           </span>
-          <span className="ml-auto text-xs" style={{ color: "rgba(255,255,255,0.2)" }}>
+          <span className="ml-auto text-xs" style={{ color: "rgba(255,255,255,0.65)" }}>
             {dateStr}
           </span>
         </div>
@@ -141,7 +141,7 @@ export function ShaderArtifactCard({ artifact, onClick, onLike, showTag }: Props
           <button
             onClick={handleLike}
             className="flex items-center gap-1.5 text-xs transition-colors"
-            style={{ color: liked ? "#ff6b7a" : "rgba(255,255,255,0.3)" }}
+            style={{ color: liked ? "#ff6b7a" : "rgba(255,255,255,0.9)" }}
           >
             <Heart size={13} fill={liked ? "#ff6b7a" : "none"} />
             {likes}
@@ -149,7 +149,7 @@ export function ShaderArtifactCard({ artifact, onClick, onLike, showTag }: Props
           <button
             onClick={handleShare}
             className="flex items-center gap-1 text-xs hover:opacity-70 transition-opacity"
-            style={{ color: "rgba(255,255,255,0.3)" }}
+            style={{ color: "rgba(255,255,255,0.9)" }}
           >
             <Share2 size={13} />
             {artifact.shares}
@@ -157,7 +157,7 @@ export function ShaderArtifactCard({ artifact, onClick, onLike, showTag }: Props
           <button
             onClick={handleDownload}
             className="ml-auto flex items-center gap-1 text-xs hover:opacity-70 transition-opacity"
-            style={{ color: "rgba(255,255,255,0.3)" }}
+            style={{ color: "rgba(255,255,255,0.9)" }}
           >
             <Download size={13} />
           </button>

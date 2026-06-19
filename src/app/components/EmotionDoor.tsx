@@ -75,7 +75,7 @@ export function EmotionDoor({ room, isHovered, isOpening, isClosingReturn = fals
       onTouchStart={() => { onHover(true); startPreload(); }}
       onTouchEnd={() => onHover(false)}
       onClick={onClick}
-      className="group block w-full cursor-pointer select-none outline-none transition-transform duration-300 hover:-translate-y-1 focus-visible:ring-2 focus-visible:ring-black/20"
+      className="group block w-full cursor-pointer select-none transition-transform duration-300 hover:-translate-y-1"
       aria-label={`Enter ${room.name}`}
     >
       {/* aspect-ratio reserves the door's exact height on first paint (all door
