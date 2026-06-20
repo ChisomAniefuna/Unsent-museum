@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useLayoutEffect, useState, useRef } from "react";
 import { useLocation, useNavigate } from "react-router";
 import { motion } from "motion/react";
 import { LayoutGrid } from "lucide-react";
@@ -84,13 +84,28 @@ export function LandingPage() {
     setActiveIndex(i);
   }
 
-  useEffect(() => {
-    if (closingDoor) return;
-    requestAnimationFrame(() => jumpToLoopIndex(1));
-
-    return () => {
-      if (scrollSettleRef.current) window.clearTimeout(scrollSettleRef.current);
-    };
+  // Position the carousel BEFORE the browser paints. useLayoutEffect runs
+  // synchronously after DOM mutations but before paint, so the carousel is
+  // already at the correct scroll position on frame zero. Doing this in a
+  // plain useEffect (or worse, requestAnimationFrame) leaves the carousel
+  // briefly stuck at scrollLeft=0 (showing the duplicated last room) and
+  // then animating in - which is exactly the door-swap the visitor sees
+  // when returning from a room. We also use behavior:"auto" (instant), not
+  // "smooth", so there is no visible scroll animation.
+  useLayoutEffect(() => {
+    const el = carouselRef.current;
+    if (!el) return;
+    const cardW = getMobileCardWidth();
+    let loopIndex = 1; // default: first real room (love)
+    if (closingDoor) {
+      const realIndex = ROOMS.findIndex((room) => room.id === closingDoor);
+      if (realIndex >= 0) loopIndex = realIndex + 1; // +1 because MOBILE_LOOP_ROOMS[0] is the duplicated last room
+    }
+    isLoopJumpingRef.current = true;
+    el.scrollTo({ left: cardW * loopIndex, behavior: "auto" });
+    requestAnimationFrame(() => {
+      isLoopJumpingRef.current = false;
+    });
   }, [closingDoor]);
 
   // Returning from a room should feel like the same doorway closing behind the visitor,
@@ -99,18 +114,18 @@ export function LandingPage() {
   useEffect(() => {
     if (!closingDoor) return;
 
-    const index = ROOMS.findIndex((room) => room.id === closingDoor);
-    if (index >= 0) {
-      setActiveIndex(index);
-      requestAnimationFrame(() => scrollToIndex(index));
-    }
-
     const clearState = window.setTimeout(() => {
       navigate(".", { replace: true, state: null });
     }, 900);
 
     return () => window.clearTimeout(clearState);
   }, [closingDoor, navigate]);
+
+  useEffect(() => {
+    return () => {
+      if (scrollSettleRef.current) window.clearTimeout(scrollSettleRef.current);
+    };
+  }, []);
 
   return (
     <LandingMuseumBackground className="text-foreground">
