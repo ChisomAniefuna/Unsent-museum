@@ -1,9 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
-import { projectId, publicAnonKey } from "/utils/supabase/info";
+import { supabase } from "/utils/supabase/info";
 import { SEED_ARTIFACTS, Artifact, withSafeShader } from "../data/artifacts";
-
-const SERVER = `https://${projectId}.supabase.co/functions/v1/make-server-75cd8a5e`;
-const HEADERS = { "Content-Type": "application/json", Authorization: `Bearer ${publicAnonKey}` };
 
 // Locally-created artifacts are cached in localStorage so EVERY artifact a visitor
 // makes shows up in the gallery immediately and survives reloads, even when the
@@ -32,19 +29,48 @@ export function addCreatedArtifact(artifact: Artifact) {
   }
 }
 
+// Strip the bulky `shader` field before persisting to the DB. The shader source
+// is reconstructed from emotion + shaderIndex via withSafeShader on read, so
+// shipping ~5KB of GLSL per row would be pure waste.
+function toRow(artifact: Artifact) {
+  const { shader, ...lean } = artifact;
+  return {
+    id: artifact.id,
+    emotion: artifact.emotion,
+    visibility: artifact.visibility ?? "public",
+    created_at: artifact.createdAt,
+    payload: lean,
+  };
+}
+
+// Reverse of toRow. The shader is rebuilt by withSafeShader.
+function fromRow(row: any): Artifact {
+  const payload = row.payload ?? {};
+  return withSafeShader({
+    ...payload,
+    id: row.id,
+    emotion: row.emotion,
+    visibility: row.visibility,
+    createdAt: row.created_at,
+  });
+}
+
 export function useArtifacts() {
   const [serverArtifacts, setServerArtifacts] = useState<Artifact[]>([]);
   const [error, setError] = useState<string | null>(null);
 
   const fetchArtifacts = useCallback(async () => {
     try {
-      const res = await fetch(`${SERVER}/artifacts`, { headers: HEADERS });
-      if (!res.ok) throw new Error(`Server error ${res.status}`);
-      const data = await res.json();
-      setServerArtifacts(data.artifacts || []);
+      const { data, error: dbError } = await supabase
+        .from("artifacts")
+        .select("id, emotion, visibility, created_at, payload")
+        .eq("visibility", "public")
+        .order("created_at", { ascending: false });
+      if (dbError) throw dbError;
+      setServerArtifacts((data ?? []).map(fromRow));
       setError(null);
     } catch (err) {
-      console.error("Failed to fetch artifacts from server:", err);
+      console.error("Failed to fetch artifacts from Supabase:", err);
       setError(String(err));
     }
   }, []);
@@ -53,9 +79,10 @@ export function useArtifacts() {
     fetchArtifacts();
   }, [fetchArtifacts]);
 
-  // Gallery shows only the 5 seed artifacts + anything the visitor created via the
-  // form (cached in localStorage). Server-saved artifacts are kept for persistence
-  // but not merged into the display list.
+  // Gallery shows only the 5+ seed artifacts per room + anything the visitor
+  // created via the form (cached in localStorage). Server-saved artifacts are
+  // kept for persistence and for the /reveal/:id permalink path, but not merged
+  // into the display list.
   const created = loadCreated();
   const seen = new Set<string>();
   const allArtifacts = [...created, ...SEED_ARTIFACTS]
@@ -65,31 +92,25 @@ export function useArtifacts() {
   return { artifacts: allArtifacts, loading: false, error, refetch: fetchArtifacts };
 }
 
+// Atomic +1 to the artifact's likes via a Postgres function. Falls back to a
+// no-op on the server side if the function is missing; the optimistic UI in
+// useLikeStore already reflects the like locally.
 export async function likeArtifact(id: string): Promise<number> {
-  const res = await fetch(`${SERVER}/artifacts/${id}/like`, {
-    method: "POST",
-    headers: HEADERS,
+  const { data, error } = await supabase.rpc("increment_artifact_likes", {
+    artifact_id: id,
   });
-  if (!res.ok) throw new Error(`Like failed: ${res.status}`);
-  const data = await res.json();
-  return data.likes;
+  if (error) throw new Error(`Like failed: ${error.message}`);
+  return (data as number) ?? 0;
 }
 
 export async function saveArtifact(artifact: Artifact): Promise<Artifact> {
-  // Don't ship the (large) shader source to the server, it's reconstructed from
-  // emotion + shaderIndex on read via withSafeShader. Keeps the payload small and
-  // avoids a bulky/duplicated GLSL blob round-tripping through storage.
-  const { shader, ...lean } = artifact;
-  const res = await fetch(`${SERVER}/artifacts`, {
-    method: "POST",
-    headers: HEADERS,
-    body: JSON.stringify(lean),
-  });
-  if (!res.ok) {
-    const err = await res.text();
-    throw new Error(`Save failed: ${err}`);
-  }
-  const data = await res.json();
-  // Always hand back a render-safe artifact so the reveal screen never crashes.
-  return withSafeShader(data.artifact);
+  // Upsert so a re-saved artifact (e.g. retry after an offline edit) doesn't
+  // produce a duplicate-key error.
+  const { data, error } = await supabase
+    .from("artifacts")
+    .upsert(toRow(artifact))
+    .select("id, emotion, visibility, created_at, payload")
+    .single();
+  if (error) throw new Error(`Save failed: ${error.message}`);
+  return fromRow(data);
 }

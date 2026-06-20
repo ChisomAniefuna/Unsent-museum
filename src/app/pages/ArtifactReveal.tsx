@@ -5,7 +5,7 @@ import { Heart, Share2, Download, ArrowRight } from "lucide-react";
 import { Artifact, withSafeShader, MOCK_ARTIFACTS } from "../data/artifacts";
 import { WebGLCanvas } from "../components/WebGLCanvas";
 import { ROOM_MAP } from "../data/rooms";
-import { projectId, publicAnonKey } from "/utils/supabase/info";
+import { supabase } from "/utils/supabase/info";
 import { useLiked, toggleLike, likeCount } from "../hooks/useLikeStore";
 import { CryingMaskRender } from "../components/CryingMaskCard";
 import { SadnessHeadsRender } from "../components/SadnessHeadsCard";
@@ -39,12 +39,21 @@ export function ArtifactReveal() {
       const mock = MOCK_ARTIFACTS.find((a) => a.id === id);
       if (mock) { setArtifact(withSafeShader(mock)); setLoading(false); return; }
       try {
-        const res = await fetch(`https://${projectId}.supabase.co/functions/v1/make-server-75cd8a5e/artifacts/${id}`, {
-          headers: { Authorization: `Bearer ${publicAnonKey}` }
-        });
-        if (res.ok) {
-          const data = await res.json();
-          const safe = withSafeShader(data.artifact);
+        const { data: row, error } = await supabase
+          .from("artifacts")
+          .select("id, emotion, visibility, created_at, payload")
+          .eq("id", id)
+          .maybeSingle();
+        if (error) throw error;
+        if (row) {
+          const merged = {
+            ...(row.payload ?? {}),
+            id: row.id,
+            emotion: row.emotion,
+            visibility: row.visibility,
+            createdAt: row.created_at,
+          };
+          const safe = withSafeShader(merged);
           setArtifact(safe);
           // Visitor arrived via a shared link — the artifact was fetched from the server.
           if (id && !revealedIds.has(id)) {
