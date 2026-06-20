@@ -13,11 +13,21 @@ export function LandingPage() {
   const location = useLocation();
   const [hoveredRoom, setHoveredRoom] = useState<string | null>(null);
   const [openingRoom, setOpeningRoom] = useState<string | null>(null);
-  const [activeIndex, setActiveIndex] = useState(0);
+  const closingDoor = (location.state as { closingDoor?: string } | null)?.closingDoor ?? null;
+  // Seed the carousel position from closingDoor on FIRST render. Otherwise
+  // activeIndex starts at 0 (love), the carousel paints with love centered,
+  // and only after the effect runs does it scroll to the returning room - so
+  // the visitor briefly sees the wrong door swap in before "their" door
+  // settles. This makes the carousel paint correctly on the very first frame.
+  const initialIndex = (() => {
+    if (!closingDoor) return 0;
+    const i = ROOMS.findIndex((r) => r.id === closingDoor);
+    return i >= 0 ? i : 0;
+  })();
+  const [activeIndex, setActiveIndex] = useState(initialIndex);
   const carouselRef = useRef<HTMLDivElement>(null);
   const scrollSettleRef = useRef<number | null>(null);
   const isLoopJumpingRef = useRef(false);
-  const closingDoor = (location.state as { closingDoor?: string } | null)?.closingDoor ?? null;
 
   function handleDoorClick(room: RoomDef) {
     if (openingRoom) return;
