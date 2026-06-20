@@ -1668,41 +1668,182 @@ export const MOCK_ARTIFACTS: Artifact[] = [
     visibility: "public",
     interpretation: "A butterfly of gold lacework breathing its wings open and shut, fragile hope that refuses to stop flying.",
   },
+
+  // ─── Uber-shader seeds ──────────────────────────────────────────────────────
+  // Each new emotion uber-shader (and the ASCII-scenes / paisley-fan additions)
+  // gets a hand-picked seed and a written message so visitors see them on the
+  // first visit, not only when they create their own artifact. The shaderIndex
+  // values point to the position in EMOTION_SHADERS.<emotion> after registering
+  // each new shader in generatedShaders.ts.
+
+  {
+    id: "mock-uber-grief",
+    emotion: "grief",
+    title: "I Keep Setting Two Plates",
+    messageExcerpt: "I forget you're not coming. I set two plates and remember halfway through dinner.",
+    messageVisibility: "excerpt",
+    creatorDisplayName: "Anonymous Visitor",
+    isAnonymous: true,
+    avatarColor: "#3d1d6e",
+    avatarInitials: "?",
+    dna: { seed: 1665, shaderIndex: 20, emotion: "grief", intensity: 0.7, timeOffset: 1.4, unique: true },
+    shader: EMOTION_SHADERS.grief[20],
+    createdAt: "2026-06-15T09:42:00Z",
+    likes: 87, shares: 22, downloads: 14,
+    visibility: "public",
+    interpretation: "A field of slow ash, the texture of unbroken habits.",
+  },
+
+  {
+    id: "mock-uber-ascii",
+    emotion: "grief",
+    title: "It Cracked the Quiet Way",
+    messageExcerpt: "It didn't shatter. It just stopped fitting. Quietly. Like it had decided.",
+    messageVisibility: "excerpt",
+    creatorDisplayName: "K.",
+    isAnonymous: false,
+    avatarColor: "#7a4d14",
+    avatarInitials: "K.",
+    dna: { seed: 7, shaderIndex: 21, emotion: "grief", intensity: 0.8, timeOffset: 0.0, unique: true },
+    shader: EMOTION_SHADERS.grief[21],
+    createdAt: "2026-06-17T22:08:00Z",
+    likes: 153, shares: 41, downloads: 28,
+    visibility: "public",
+    interpretation: "A heart rendered in slow grain, splitting at its own pace.",
+  },
+
+  {
+    id: "mock-uber-hope",
+    emotion: "hope",
+    title: "Light Found a Way Through",
+    messageExcerpt: "I closed every door. Somehow light still got under one of them.",
+    messageVisibility: "excerpt",
+    creatorDisplayName: "Anonymous Visitor",
+    isAnonymous: true,
+    avatarColor: "#8b5e14",
+    avatarInitials: "?",
+    dna: { seed: 12, shaderIndex: 19, emotion: "hope", intensity: 0.85, timeOffset: 2.1, unique: true },
+    shader: EMOTION_SHADERS.hope[19],
+    createdAt: "2026-06-16T15:24:00Z",
+    likes: 211, shares: 73, downloads: 39,
+    visibility: "public",
+    interpretation: "Rays through smoke, hope as a kind of geometry.",
+  },
+
+  {
+    id: "mock-uber-paisley",
+    emotion: "hope",
+    title: "What I Carry Forward",
+    messageExcerpt: "I'm taking the gold parts. I'm leaving the rest where I found them.",
+    messageVisibility: "excerpt",
+    creatorDisplayName: "Anonymous Visitor",
+    isAnonymous: true,
+    avatarColor: "#a06d28",
+    avatarInitials: "?",
+    dna: { seed: 17, shaderIndex: 20, emotion: "hope", intensity: 0.72, timeOffset: 3.0, unique: true },
+    shader: EMOTION_SHADERS.hope[20],
+    createdAt: "2026-06-18T11:55:00Z",
+    likes: 142, shares: 51, downloads: 24,
+    visibility: "public",
+    interpretation: "A gold paisley fan, hope made into ornament.",
+  },
+
+  {
+    id: "mock-uber-love",
+    emotion: "love",
+    title: "The Shape You Left in Me",
+    messageExcerpt: "You took the words and left the feeling. I still don't know how to hold it.",
+    messageVisibility: "excerpt",
+    creatorDisplayName: "R.",
+    isAnonymous: false,
+    avatarColor: "#820307",
+    avatarInitials: "R.",
+    dna: { seed: 5, shaderIndex: 16, emotion: "love", intensity: 0.78, timeOffset: 4.2, unique: true },
+    shader: EMOTION_SHADERS.love[16],
+    createdAt: "2026-06-15T20:11:00Z",
+    likes: 268, shares: 92, downloads: 47,
+    visibility: "public",
+    interpretation: "A heart blooming in warm light, unable to close.",
+  },
+
+  {
+    id: "mock-uber-regret",
+    emotion: "regret",
+    title: "The Pieces I Kept",
+    messageExcerpt: "I kept the broken pieces. Not to fix anything. Just to remember what shape it had been.",
+    messageVisibility: "excerpt",
+    creatorDisplayName: "Anonymous Visitor",
+    isAnonymous: true,
+    avatarColor: "#0e3a5c",
+    avatarInitials: "?",
+    dna: { seed: 7, shaderIndex: 16, emotion: "regret", intensity: 0.83, timeOffset: 0.8, unique: true },
+    shader: EMOTION_SHADERS.regret[16],
+    createdAt: "2026-06-17T07:30:00Z",
+    likes: 102, shares: 35, downloads: 18,
+    visibility: "public",
+    interpretation: "Shards in cold ink, the geometry of what couldn't be saved.",
+  },
+
+  {
+    id: "mock-uber-closure",
+    emotion: "closure",
+    title: "I Drew the Circle Closed",
+    messageExcerpt: "I drew the circle around it. I put the pen down. The line was uneven, but it was finished.",
+    messageVisibility: "public",
+    fullMessage: "I drew the circle around it. I put the pen down. The line was uneven, but it was finished. That was enough.",
+    creatorDisplayName: "J.",
+    isAnonymous: false,
+    avatarColor: "#0a7a5c",
+    avatarInitials: "J.",
+    dna: { seed: 12, shaderIndex: 17, emotion: "closure", intensity: 0.65, timeOffset: 1.0, unique: true },
+    shader: EMOTION_SHADERS.closure[17],
+    createdAt: "2026-06-19T08:45:00Z",
+    likes: 326, shares: 118, downloads: 61,
+    visibility: "public",
+    interpretation: "An enso in pale blue, the hand-drawn shape of letting go.",
+  },
 ];
 
 // The gallery shows only these seed artifacts by default. User-created artifacts
 // (from the form) get added on top. The full MOCK_ARTIFACTS array stays around so
 // uniqueSeed() can avoid seed collisions and ArtifactReveal can look up any mock.
 const SEED_IDS = new Set([
-  // Love (5)
+  // Love (5 + 1 uber)
   "mock-78",     // "You Keep Opening in Me"
   "mock-79",     // "The Space Between Our Hands"
   "mock-1",      // "I Never Said It Back"
   "mock-6",      // "Every Song After You"
   "mock-10",     // "We Both Knew"
-  // Grief (5)
+  "mock-uber-love",      // "The Shape You Left in Me"      (love-uber, heart bloom)
+  // Grief (5 + 2 uber)
   "mock-80",     // "Grief Wears Every Face"
   "mock-2",      // "The Room Is Still Your Size"
   "mock-17",     // "I Still Reach for the Phone"
   "mock-7",      // "I Haven't Opened the Windows"
   "mock-22",     // "Nothing Dramatic, Just Quiet"
-  // Hope (5)
+  "mock-uber-grief",     // "I Keep Setting Two Plates"      (grief-uber, drift radial ash)
+  "mock-uber-ascii",     // "It Cracked the Quiet Way"       (grief-ascii-scenes, broken heart amber)
+  // Hope (5 + 2 uber)
   "mock-81",     // "I Take Up Space Again"
   "mock-82",     // "It Still Knows How to Fly"
   "mock-3",      // "I Still Believe in Us"
   "mock-8",      // "You Wouldn't Recognize Me"
   "mock-32",     // "Vast and Not Afraid"
-  // Regret (5)
+  "mock-uber-hope",      // "Light Found a Way Through"      (hope-uber, rays smoke)
+  "mock-uber-paisley",   // "What I Carry Forward"           (hope-paisley-fan)
+  // Regret (5 + 1 uber)
   "mock-mask",   // "The Face We Wore" (crying mask)
   "mock-heads",  // "Five Ways of Grieving" (sadness heads)
   "mock-4",      // "The Other Path"
   "mock-13",     // "That One Sentence"
   "mock-44",     // "Two Versions of My Life"
-  // Closure (5)
+  "mock-uber-regret",    // "The Pieces I Kept"              (regret-uber, fragment shards)
+  // Closure (5 + 1 uber)
   "mock-5",      // "It Took Seven Years"
   "mock-40",     // "I Forgive You"
   "mock-36",     // "A Conversation I Never Had"
   "mock-39",     // "Peace Arrived Quietly"
   "mock-69",     // "I Let It Become Water"
+  "mock-uber-closure",   // "I Drew the Circle Closed"       (closure-uber, enso)
 ]);
 export const SEED_ARTIFACTS: Artifact[] = MOCK_ARTIFACTS.filter((a) => SEED_IDS.has(a.id));
