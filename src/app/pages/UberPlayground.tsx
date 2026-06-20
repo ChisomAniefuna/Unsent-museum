@@ -6,6 +6,7 @@ import loveUber from "../data/generated/love-uber";
 import regretUber from "../data/generated/regret-uber";
 import closureUber from "../data/generated/closure-uber";
 import flowerUber from "../data/generated/flower-mandala-uber";
+import griefAsciiScenes from "../data/generated/grief-ascii-scenes";
 import { decodeGenes, UberEmotion, GENE_LABELS } from "../data/uberGenes";
 
 const SHADERS = {
@@ -15,6 +16,7 @@ const SHADERS = {
   regret: regretUber,
   closure: closureUber,
   flower: flowerUber,
+  ascii: griefAsciiScenes,
 } as const;
 
 type CategoryKey = keyof typeof SHADERS;
@@ -29,7 +31,33 @@ const FLOWER_LABELS = {
   decay:   ["wine", "claret", "plum"],
 } as const;
 
+const ASCII_LABELS = {
+  field: [
+    "crying face", "weeping eye", "faceless", "alone",
+    "rain of sorrow", "broken heart", "empty chair", "wilted bouquet",
+    "melting candle", "hidden moon", "grief mask", "covering face",
+    "window watcher", "tear river", "shattered glasses", "spiral void",
+  ],
+  domain:  ["mono", "matrix", "crimson", "indigo", "amber", "rose"],
+  palette: ["sparse", "medium", "dense"],
+  surface: ["calm", "quick", "racing"],
+  decay:   ["clean", "faint", "strong"],
+} as const;
+
 function decode(seed: number, key: CategoryKey) {
+  if (key === "ascii") {
+    const hash11 = (p: number) => { p=p*0.1031; p=p-Math.floor(p); p=p*(p+33.33); p=p*(p+p); return p-Math.floor(p); };
+    const pick = (uSeed: number, salt: number, n: number) => Math.floor(hash11(uSeed*7.13 + salt*17.93) * n);
+    const uSeed = (((seed % 10000) + 10000) % 10000) / 100;
+    return {
+      uSeed,
+      field:   ASCII_LABELS.field[pick(uSeed, 1, 16)],
+      domain:  ASCII_LABELS.domain[pick(uSeed, 2, 6)],
+      palette: ASCII_LABELS.palette[pick(uSeed, 3, 3)],
+      surface: ASCII_LABELS.surface[pick(uSeed, 4, 3)],
+      decay:   ASCII_LABELS.decay[pick(uSeed, 5, 3)],
+    };
+  }
   if (key === "flower") {
     // Flower mandala has different gene salts than the emotion ubers because
     // the salts here are field=1, palette=2, petals=3, center=4, bg=5 - matches
@@ -56,6 +84,7 @@ const HEADER_LABELS: Record<CategoryKey, { field: string; domain: string; palett
   regret:  { field: "field", domain: "domain", palette: "palette", surface: "surface", decay: "decay" },
   closure: { field: "field", domain: "domain", palette: "palette", surface: "surface", decay: "decay" },
   flower:  { field: "arrangement", domain: "palette", palette: "petals", surface: "center", decay: "background" },
+  ascii:   { field: "scene", domain: "palette", palette: "density", surface: "tempo", decay: "grain" },
 };
 
 export function UberPlayground() {
