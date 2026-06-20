@@ -60,9 +60,13 @@ export function ArtifactForm({ defaultEmotion, accentColor, roomImage, onClose, 
 
     const stages = getGenStages(room?.name?.toLowerCase() || defaultEmotion);
 
+    // Each stage holds for ~900ms so the visitor actually reads it. The text's
+    // own motion exit animation is 400ms, so a 900ms hold gives ~500ms of
+    // settled text before the next line starts swapping in. Total visible
+    // demo time: ~2.7s before the shader takes over on the reveal page.
     for (let i = 0; i < stages.length; i++) {
       setGenStage(i);
-      await new Promise((r) => setTimeout(r, 130));
+      await new Promise((r) => setTimeout(r, 900));
     }
 
     const artifact = generateArtifact(
@@ -75,7 +79,8 @@ export function ArtifactForm({ defaultEmotion, accentColor, roomImage, onClose, 
       "excerpt"
     );
 
-    await new Promise((r) => setTimeout(r, 150));
+    // Brief breath after the last line so the dot doesn't vanish mid-fade.
+    await new Promise((r) => setTimeout(r, 300));
     onArtifactGenerated(artifact);
   }
 

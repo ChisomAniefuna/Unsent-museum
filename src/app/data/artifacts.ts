@@ -65,21 +65,46 @@ export function dnaKey(d: ArtifactDNA): string {
   return `${d.emotion}:${d.shaderIndex}:${d.seed}`;
 }
 
-// Seeds already in use (mocks + this session's generations), keyed by emotion+seed
-// so a re-roll never produces an exact duplicate. Lazily seeded from MOCK_ARTIFACTS
-// on first generate (MOCK_ARTIFACTS is defined later in this module).
+// Seeds already in use, keyed by emotion+seed so a re-roll never produces an
+// exact duplicate. Seeded from THREE sources so we don't collide with anything
+// the visitor can see:
+//   1. MOCK_ARTIFACTS (the seed gallery shipped with the app)
+//   2. localStorage["unsent_created_v1"] (this visitor's own past creations)
+//   3. Whatever we generate during this session (added as we go)
+// Lazily built on first generate; MOCK_ARTIFACTS is defined later in this module.
 let knownSeeds: Set<string> | null = null;
+
+function loadPriorCreationSeeds(): string[] {
+  if (typeof window === "undefined") return [];
+  try {
+    const raw = window.localStorage.getItem("unsent_created_v1");
+    if (!raw) return [];
+    const list = JSON.parse(raw) as { emotion?: string; dna?: { seed?: number } }[];
+    return list
+      .filter((a) => a?.emotion && typeof a.dna?.seed === "number")
+      .map((a) => `${a.emotion}:${a.dna!.seed}`);
+  } catch {
+    return [];
+  }
+}
+
 function ensureKnownSeeds(): Set<string> {
   if (knownSeeds) return knownSeeds;
-  knownSeeds = new Set(MOCK_ARTIFACTS.map((a) => `${a.emotion}:${a.dna.seed}`));
+  knownSeeds = new Set([
+    ...MOCK_ARTIFACTS.map((a) => `${a.emotion}:${a.dna.seed}`),
+    ...loadPriorCreationSeeds(),
+  ]);
   return knownSeeds;
 }
-// Hash a message+emotion into a seed that is not already taken (re-rolls up to 8x).
+
+// Hash a message+emotion into a seed that is not already taken. 16 re-rolls is
+// overkill on a Set with thousands of entries (a 32-bit hash collides at ~p<1e-6
+// per pair) but cheap, so we get effectively-guaranteed uniqueness.
 function uniqueSeed(message: string, emotion: string): number {
   const known = ensureKnownSeeds();
   let seed = simpleHash(message + emotion + Date.now() + Math.random().toString());
   let guard = 0;
-  while (known.has(`${emotion}:${seed}`) && guard++ < 8) {
+  while (known.has(`${emotion}:${seed}`) && guard++ < 16) {
     seed = simpleHash(seed + ":" + Math.random().toString());
   }
   known.add(`${emotion}:${seed}`);
