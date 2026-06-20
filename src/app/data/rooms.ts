@@ -1,11 +1,14 @@
 import { DoorId, getDoorImageSrc } from "../components/EmotionDoorImage";
 
-// Room fallback images, shown immediately when video hasn't loaded
-import loveImage    from "../../imports/love_image.webp";
-import hopeImage    from "../../imports/Hope_image.webp";
-import regretImage  from "../../imports/Regret_image.webp";
-import closureImage from "../../imports/closure_image.webp";
-import griefImage   from "../../imports/grief_image_opt.jpg";
+// Room fallback images, shown when the room video hasn't loaded yet. Served
+// from /public so the URLs are stable and can be prefetched from index.html
+// (browser fetches them at idle priority, after the doors and JS bundle but
+// before the visitor hovers a door open).
+const loveImage    = "/rooms/love.webp";
+const hopeImage    = "/rooms/hope.webp";
+const regretImage  = "/rooms/regret.webp";
+const closureImage = "/rooms/closure.webp";
+const griefImage   = "/rooms/grief.webp";
 
 export interface RoomDef {
   id: string;
