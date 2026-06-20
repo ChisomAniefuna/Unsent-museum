@@ -7,12 +7,6 @@ import { createClient } from "@supabase/supabase-js";
 export const SUPABASE_URL = "https://jgdlnwvgtipiiolfzqaz.supabase.co";
 export const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_11HgTco8JKKj31AmSNADLw_LdECGYnj";
 
-// Legacy export names kept so older imports that still reference projectId /
-// publicAnonKey (e.g. the edge-function-style fetch path in ArtifactReveal)
-// keep compiling while we migrate everything to the JS client below.
-export const projectId = "jgdlnwvgtipiiolfzqaz";
-export const publicAnonKey = SUPABASE_PUBLISHABLE_KEY;
-
 // Single shared browser client. Used by useArtifacts() and ArtifactReveal.
 // The 'public' schema is the default; we just store everything in one table
 // (public.artifacts) with a JSONB payload column.

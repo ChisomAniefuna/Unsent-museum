@@ -53,7 +53,7 @@ When a visitor writes a message, `generateArtifact()` produces an `Artifact` obj
 - a `shaderIndex` picked from the emotion's full shader pool (including the new uber-shaders and ASCII scenes)
 - a generated title, interpretation, and metadata
 
-The artifact persists to a Supabase edge function (`supabase/functions/server/index.tsx`) backed by a KV store, and is also cached in `localStorage` so it appears in the gallery immediately even if the backend is unreachable.
+The artifact persists to the `public.artifacts` table in Supabase via the JS client (with Row Level Security enforcing anonymous-write / public-read), and is also cached in `localStorage` so it appears in the gallery immediately even if the backend is unreachable.
 
 ## Accessibility
 
@@ -86,7 +86,8 @@ src/
     a11y.css                  : global focus ring, skip link, prefers-reduced-motion guard
     theme.css                 : design tokens
 supabase/
-  functions/server/           : Hono-based Deno edge function with KV-backed artifact storage
+  setup.sql                   : artifacts table + RLS policies + atomic counter functions
+  migrations/                 : versioned schema for `supabase db push`
 ```
 
 ## The playground
@@ -107,7 +108,7 @@ Vite HMR picks up GLSL edits live, so iterating on a shader is: edit the `glsl` 
 - Vite
 - Raw WebGL 1.0 fragment shaders (no Three.js, no ogl)
 - Tailwind CSS + custom design tokens
-- Supabase Edge Functions (Deno + Hono) for persistence
+- Supabase (Postgres + RLS) for persistence, accessed directly via `@supabase/supabase-js`
 - shadcn/ui for some primitives
 
 ## Credits
