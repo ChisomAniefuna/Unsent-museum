@@ -181,7 +181,15 @@ export function UberPlayground() {
             {(Object.keys(SHADERS) as CategoryKey[]).map((e) => (
               <button
                 key={e}
-                onClick={() => setEmotion(e)}
+                onClick={() => {
+                  setEmotion(e);
+                  pendo.track("shader_experimented", {
+                    shader_category: e,
+                    seed,
+                    action_type: "category_change",
+                    unique_mode: !!unique,
+                  });
+                }}
                 style={{
                   padding: "6px 14px",
                   borderRadius: 6,
@@ -236,19 +244,50 @@ export function UberPlayground() {
           </div>
           <div style={{ display: "flex", gap: 8 }}>
             <button
-              onClick={() => setSeed(Math.floor(Math.random() * 10000))}
+              onClick={() => {
+                const newSeed = Math.floor(Math.random() * 10000);
+                setSeed(newSeed);
+                pendo.track("shader_experimented", {
+                  shader_category: emotion,
+                  seed: newSeed,
+                  action_type: "randomize",
+                  unique_mode: !!unique,
+                });
+              }}
               style={{ padding: "8px 14px", background: "#221e3a", color: "#e9e9f2", border: "1px solid #3a3550", borderRadius: 6, cursor: "pointer" }}
             >
               Randomize
             </button>
             <button
-              onClick={() => setSeed((s) => (s + 1) % 10000)}
+              onClick={() => {
+                setSeed((s) => {
+                  const newSeed = (s + 1) % 10000;
+                  pendo.track("shader_experimented", {
+                    shader_category: emotion,
+                    seed: newSeed,
+                    action_type: "next",
+                    unique_mode: !!unique,
+                  });
+                  return newSeed;
+                });
+              }}
               style={{ padding: "8px 14px", background: "#221e3a", color: "#e9e9f2", border: "1px solid #3a3550", borderRadius: 6, cursor: "pointer" }}
             >
               Next
             </button>
             <button
-              onClick={() => setSeed((s) => (s + 9999) % 10000)}
+              onClick={() => {
+                setSeed((s) => {
+                  const newSeed = (s + 9999) % 10000;
+                  pendo.track("shader_experimented", {
+                    shader_category: emotion,
+                    seed: newSeed,
+                    action_type: "prev",
+                    unique_mode: !!unique,
+                  });
+                  return newSeed;
+                });
+              }}
               style={{ padding: "8px 14px", background: "#221e3a", color: "#e9e9f2", border: "1px solid #3a3550", borderRadius: 6, cursor: "pointer" }}
             >
               Prev

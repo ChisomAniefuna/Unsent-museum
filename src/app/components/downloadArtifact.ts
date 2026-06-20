@@ -46,5 +46,12 @@ export function downloadArtifact(
     // Defer revocation a tick so WebKit/Safari has started reading the blob
     // before the URL is invalidated (same-tick revoke can yield an empty file).
     setTimeout(() => URL.revokeObjectURL(url), 0);
+    pendo.track("artifact_downloaded", {
+      artifact_id: artifact.id,
+      emotion: artifact.emotion,
+      artifact_type: artifact.custom || "shader",
+      source_page: window.location.pathname,
+      artifact_title: artifact.title,
+    });
   }, "image/png");
 }

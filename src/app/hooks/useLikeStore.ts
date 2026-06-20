@@ -53,7 +53,12 @@ export function toggleLike(id: string): boolean {
   }
   persist();
   listeners.forEach((l) => l());
-  return !wasLiked;
+  const isLikeNow = !wasLiked;
+  pendo.track("artifact_liked", {
+    artifact_id: id,
+    is_like: isLikeNow,
+  });
+  return isLikeNow;
 }
 
 // Per-id subscription, for components that like a single known artifact.

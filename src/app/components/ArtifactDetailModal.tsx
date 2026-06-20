@@ -50,16 +50,33 @@ export function ArtifactDetailModal({ artifact, onClose }: Props) {
   // openable link (/reveal/:id) and show "Copied!" so the click has visible effect.
   async function handleShare() {
     const url = `${window.location.origin}/reveal/${artifact.id}`;
+    let shareMethod = "unknown";
     try {
       if (typeof navigator !== "undefined" && navigator.share) {
         await navigator.share({ title: `${artifact.title} · The Unsent Museum`, text: artifact.interpretation, url });
+        shareMethod = "native_share";
+        pendo.track("artifact_shared", {
+          artifact_id: artifact.id,
+          emotion: artifact.emotion,
+          share_method: shareMethod,
+          source_page: "detail_modal",
+          artifact_title: artifact.title,
+        });
         return;
       }
     } catch { /* user dismissed the sheet, fall through to copy */ }
     try {
       await navigator.clipboard.writeText(url);
+      shareMethod = "clipboard_copy";
       setCopied(true);
       window.setTimeout(() => setCopied(false), 1800);
+      pendo.track("artifact_shared", {
+        artifact_id: artifact.id,
+        emotion: artifact.emotion,
+        share_method: shareMethod,
+        source_page: "detail_modal",
+        artifact_title: artifact.title,
+      });
     } catch { /* clipboard blocked (insecure context), nothing else to do */ }
   }
 
@@ -304,6 +321,13 @@ export function ArtifactDetailModal({ artifact, onClose }: Props) {
                 className="ml-auto flex items-center gap-1 px-3 py-2 rounded-full text-xs transition-all hover:opacity-70"
                 style={{ color: "rgba(255,255,255,0.72)" }}
                 aria-label="Report artifact"
+                onClick={() => {
+                  pendo.track("artifact_reported", {
+                    artifact_id: artifact.id,
+                    emotion: artifact.emotion,
+                    artifact_title: artifact.title,
+                  });
+                }}
               >
                 <Flag size={11} />
               </button>

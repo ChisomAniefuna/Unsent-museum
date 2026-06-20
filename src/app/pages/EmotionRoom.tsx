@@ -63,9 +63,38 @@ export function EmotionRoom() {
       // Save to Supabase backend
       const saved = await saveArtifact(artifact);
       addCreatedArtifact(saved); // keep the cached copy in sync with the server id
+      pendo.track("artifact_created", {
+        emotion: saved.emotion,
+        message_length: saved.messageExcerpt?.length || 0,
+        has_title: !!saved.title,
+        is_anonymous: saved.isAnonymous,
+        visibility: saved.visibility,
+        message_visibility: saved.messageVisibility,
+        shader_index: saved.dna.shaderIndex,
+        seed: saved.dna.seed,
+        artifact_id: saved.id,
+        save_success: true,
+      });
       navigate(`/reveal/${saved.id}`, { state: { artifact: saved } });
     } catch (err) {
       console.error("Failed to save artifact:", err);
+      pendo.track("artifact_save_failed", {
+        artifact_id: artifact.id,
+        emotion: artifact.emotion,
+        error_message: String(err instanceof Error ? err.message : err).substring(0, 100),
+      });
+      pendo.track("artifact_created", {
+        emotion: artifact.emotion,
+        message_length: artifact.messageExcerpt?.length || 0,
+        has_title: !!artifact.title,
+        is_anonymous: artifact.isAnonymous,
+        visibility: artifact.visibility,
+        message_visibility: artifact.messageVisibility,
+        shader_index: artifact.dna.shaderIndex,
+        seed: artifact.dna.seed,
+        artifact_id: artifact.id,
+        save_success: false,
+      });
       // Fallback: continue anyway with local artifact if save fails
       navigate(`/reveal/${artifact.id}`, { state: { artifact } });
     } finally {
