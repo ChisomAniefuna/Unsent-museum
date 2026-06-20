@@ -136,7 +136,7 @@ export function LandingPage() {
 
           {/* Hero sub-line, what this place is for */}
           <p className="mt-4 mx-auto max-w-3xl text-balance font-['Cormorant_Garamond'] text-[clamp(1.05rem,1.8vw,1.5rem)] font-medium italic leading-snug tracking-[0.01em] text-[#3a2c20]/80">
-            Write the message you never sent, watch it become living art.
+            For every feeling that never found a voice, and every word we carried long after the moment passed.
           </p>
         </motion.header>
 
