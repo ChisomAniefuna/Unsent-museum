@@ -3,6 +3,8 @@ import { createRoot } from "react-dom/client";
 import "./styles/index.css";
 import App from "./app/App";
 
+pendo.initialize({ visitor: { id: '' } });
+
 createRoot(document.getElementById("root") as HTMLElement).render(
   <React.StrictMode>
     <App />
