@@ -11,6 +11,10 @@ import { CryingMaskRender } from "../components/CryingMaskCard";
 import { SadnessHeadsRender } from "../components/SadnessHeadsCard";
 import { downloadArtifact } from "../components/downloadArtifact";
 
+// Module-level dedup set so artifact_revealed fires once per artifact per session,
+// even if the component remounts due to navigation.
+const revealedIds = new Set<string>();
+
 export function ArtifactReveal() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -42,6 +46,15 @@ export function ArtifactReveal() {
           const data = await res.json();
           const safe = withSafeShader(data.artifact);
           setArtifact(safe);
+          // Visitor arrived via a shared link — the artifact was fetched from the server.
+          if (id && !revealedIds.has(id)) {
+            pendo.track("shared_artifact_opened", {
+              artifact_id: safe.id,
+              emotion: safe.emotion,
+              referrer: document.referrer || "direct",
+              artifact_title: safe.title,
+            });
+          }
         } else {
           navigate("/");
         }
@@ -54,6 +67,20 @@ export function ArtifactReveal() {
     }
     fetchArtifact();
   }, [id, artifact]);
+
+  // Track artifact_revealed once per artifact per session, regardless of load source.
+  useEffect(() => {
+    if (!artifact || !id || revealedIds.has(id)) return;
+    revealedIds.add(id);
+    const loadSource = location.state?.artifact ? "navigation" : "fetch";
+    pendo.track("artifact_revealed", {
+      artifact_id: artifact.id,
+      emotion: artifact.emotion,
+      load_source: loadSource,
+      artifact_title: artifact.title,
+      is_custom_artifact: !!artifact.custom,
+    });
+  }, [artifact, id]);
 
   if (loading) {
     return (

@@ -49,6 +49,15 @@ export function ArtifactForm({ defaultEmotion, accentColor, roomImage, onClose, 
     if (!message.trim()) return;
     setGenerating(true);
 
+    pendo.track("artifact_form_submitted", {
+      emotion: defaultEmotion,
+      message_length: message.trim().length,
+      has_title: !!title.trim(),
+      title_length: title.trim().length,
+      is_anonymous: isAnonymous,
+      has_display_name: !!displayName.trim(),
+    });
+
     const stages = getGenStages(room?.name?.toLowerCase() || defaultEmotion);
 
     for (let i = 0; i < stages.length; i++) {

@@ -22,6 +22,10 @@ export function LandingPage() {
   function handleDoorClick(room: RoomDef) {
     if (openingRoom) return;
     setOpeningRoom(room.id);
+    pendo.track("emotion_room_entered", {
+      emotion: room.id,
+      room_name: room.name,
+    });
     window.setTimeout(() => navigate(`/room/${room.id}`), 680);
   }
 

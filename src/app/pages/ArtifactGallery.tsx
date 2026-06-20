@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect, useRef } from "react";
+import { useState, useMemo, useEffect, useRef, useCallback } from "react";
 import { useNavigate, useParams } from "react-router";
 import { motion, AnimatePresence } from "motion/react";
 import { Search, LayoutGrid, GalleryHorizontalEnd, ChevronDown } from "lucide-react";
@@ -48,6 +48,41 @@ export function ArtifactGallery() {
   useEffect(() => {
     setActiveEmotion(emotion && emotion !== "all" ? emotion : "all");
   }, [emotion]);
+
+  // Debounced search tracking — fires 600ms after the visitor stops typing.
+  const searchTimerRef = useRef<number | null>(null);
+  useEffect(() => {
+    if (!search.trim()) return;
+    if (searchTimerRef.current) window.clearTimeout(searchTimerRef.current);
+    searchTimerRef.current = window.setTimeout(() => {
+      pendo.track("gallery_searched", {
+        query: search.trim().substring(0, 100),
+        results_count: filtered.length,
+        active_emotion_filter: activeEmotion,
+        sort_mode: sort,
+        view_mode: view,
+      });
+    }, 600);
+    return () => { if (searchTimerRef.current) window.clearTimeout(searchTimerRef.current); };
+  }, [search]);
+
+  const handleEmotionChange = useCallback((value: string) => {
+    setActiveEmotion(value);
+    pendo.track("gallery_filtered", {
+      emotion_filter: value,
+      sort_mode: sort,
+      view_mode: view,
+    });
+  }, [sort, view]);
+
+  const handleSortChange = useCallback((value: string) => {
+    setSort(value as SortMode);
+    pendo.track("gallery_filtered", {
+      emotion_filter: activeEmotion,
+      sort_mode: value,
+      view_mode: view,
+    });
+  }, [activeEmotion, view]);
 
   const filtered = useMemo(() => {
     let items = artifacts.filter((a) => a.visibility === "public");
@@ -139,7 +174,15 @@ export function ArtifactGallery() {
                 const Icon = is3D ? GalleryHorizontalEnd : LayoutGrid;
                 return (
                   <button
-                    onClick={() => setView(is3D ? "grid" : "carousel")}
+                    onClick={() => {
+                      const newView = is3D ? "grid" : "carousel";
+                      pendo.track("gallery_view_changed", {
+                        new_view_mode: newView,
+                        previous_view_mode: view,
+                        artifact_count: filtered.length,
+                      });
+                      setView(newView);
+                    }}
                     className="flex items-center gap-1.5 px-4 py-1.5 rounded-full text-[11px] transition-all"
                     style={{
                       background: is3D ? accentColor + "26" : "rgba(255,255,255,0.04)",
@@ -157,7 +200,7 @@ export function ArtifactGallery() {
               {/* 2 · Room */}
               <Dropdown
                   value={activeEmotion}
-                  onChange={setActiveEmotion}
+                  onChange={handleEmotionChange}
                   accent={accentColor}
                   options={[
                     { value: "all", label: "All Rooms" },
@@ -168,7 +211,7 @@ export function ArtifactGallery() {
               {/* 3 · Sort */}
               <Dropdown
                 value={sort}
-                onChange={(v) => setSort(v as SortMode)}
+                onChange={handleSortChange}
                 accent={accentColor}
                 options={[
                   { value: "newest", label: "Newest" },
