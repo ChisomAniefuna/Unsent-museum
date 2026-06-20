@@ -1,7 +1,8 @@
-import { Suspense, lazy } from "react";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router";
+import { Suspense, lazy, useEffect } from "react";
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-router";
 import { MotionConfig } from "motion/react";
 import { LandingPage } from "./pages/LandingPage";
+import { trackPage } from "./analytics";
 
 // Landing is eager so first paint isn't gated on a chunk fetch. Everything
 // else is split off the main bundle and only loaded when its route is hit.
@@ -11,6 +12,18 @@ const ArtifactReveal = lazy(() => import("./pages/ArtifactReveal").then(m => ({ 
 const CryingMaskExhibit = lazy(() => import("./components/CryingMaskExhibit").then(m => ({ default: m.CryingMaskExhibit })));
 const UberPlayground = lazy(() => import("./pages/UberPlayground").then(m => ({ default: m.UberPlayground })));
 
+// Pendo's auto pageLoad only fires on hard navigations. This component watches
+// react-router for client-side route changes and reports each one to Pendo so
+// the dashboard sees the real funnel (/ -> /room/grief -> /reveal/xyz) instead
+// of one "landing" page-load per session.
+function RouteTracker() {
+  const location = useLocation();
+  useEffect(() => {
+    trackPage(location.pathname, { search: location.search });
+  }, [location.pathname, location.search]);
+  return null;
+}
+
 export default function App() {
   return (
     // reducedMotion="user" makes every framer-motion animation in the tree
@@ -19,6 +32,7 @@ export default function App() {
     // without us having to guard each <motion.div> by hand.
     <MotionConfig reducedMotion="user">
       <BrowserRouter>
+        <RouteTracker />
         <a href="#main" className="skip-link">Skip to content</a>
         <main
           id="main"
