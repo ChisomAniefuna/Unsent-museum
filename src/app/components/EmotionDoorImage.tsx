@@ -19,6 +19,24 @@ export function getDoorImageSrc(door: DoorId) {
   return DOOR_IMAGE_SRC[door];
 }
 
+let doorWarmupStarted = false;
+const warmedDoorImages: HTMLImageElement[] = [];
+
+export function warmDoorImages() {
+  if (doorWarmupStarted || typeof window === "undefined") return;
+  doorWarmupStarted = true;
+
+  Object.values(DOOR_IMAGE_SRC).forEach((src) => {
+    const img = new Image();
+    img.decoding = "async";
+    img.loading = "eager";
+    img.fetchPriority = "high";
+    img.src = src;
+    img.decode?.().catch(() => {});
+    warmedDoorImages.push(img);
+  });
+}
+
 type DoorImageProps = Omit<ComponentProps<typeof ImageWithFallback>, "src"> & {
   door: DoorId;
 };
@@ -29,10 +47,8 @@ export function EmotionDoorImage({ door, alt, loading = "eager", draggable = fal
       src={DOOR_IMAGE_SRC[door]}
       alt={alt ?? ""}
       loading={loading}
-      // Decode synchronously so a cached door paints in the SAME frame React
-      // inserts it (the common case on a room return), instead of the browser
-      // decoding async and popping the door in a frame or two later.
-      decoding="sync"
+      decoding="async"
+      fetchPriority="high"
       draggable={draggable}
       {...props}
     />

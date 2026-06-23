@@ -93,21 +93,24 @@ export function EmotionDoor({ room, isHovered, isOpening, isClosingReturn = fals
           />
         </div>
 
-        {active ? (
+        <div
+          className="absolute inset-0 z-10 transition-opacity duration-150"
+          style={{ opacity: active ? 0 : 1 }}
+        >
+          <EmotionDoorImage
+            door={room.door}
+            alt=""
+            loading="eager"
+            className="absolute inset-0 h-full w-full object-contain pointer-events-none"
+            draggable={false}
+          />
+        </div>
+
+        {active && (
           <>
             <DoorLeaf room={room} side="left" angle={leftAngle} isClosingReturn={isClosingReturn} />
             <DoorLeaf room={room} side="right" angle={rightAngle} isClosingReturn={isClosingReturn} />
           </>
-        ) : (
-          <div className="absolute inset-0 z-10">
-            <EmotionDoorImage
-              door={room.door}
-              alt=""
-              loading="eager"
-              className="absolute inset-0 h-full w-full object-contain pointer-events-none"
-              draggable={false}
-            />
-          </div>
         )}
 
         <motion.div

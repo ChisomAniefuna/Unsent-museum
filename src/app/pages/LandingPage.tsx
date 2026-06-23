@@ -4,9 +4,12 @@ import { motion } from "motion/react";
 import { LayoutGrid } from "lucide-react";
 import { ROOMS, RoomDef } from "../data/rooms";
 import { EmotionDoor } from "../components/EmotionDoor";
+import { warmDoorImages } from "../components/EmotionDoorImage";
 import { LandingMuseumBackground } from "../components/LandingMuseumBackground";
 
 const MOBILE_LOOP_ROOMS = [ROOMS[ROOMS.length - 1], ...ROOMS, ROOMS[0]];
+
+warmDoorImages();
 
 // Render ONLY the layout that matches the viewport instead of mounting both the
 // desktop grid AND the mobile carousel and hiding one with CSS. A hidden-but-
@@ -50,6 +53,10 @@ export function LandingPage() {
   const carouselRef = useRef<HTMLDivElement>(null);
   const scrollSettleRef = useRef<number | null>(null);
   const isLoopJumpingRef = useRef(false);
+  const closingMobileRoomIndex = closingDoor
+    ? ROOMS.findIndex((room) => room.id === closingDoor)
+    : -1;
+  const closingMobileLoopIndex = closingMobileRoomIndex >= 0 ? closingMobileRoomIndex + 1 : -1;
 
   function handleDoorClick(room: RoomDef) {
     if (openingRoom) return;
@@ -239,7 +246,7 @@ export function LandingPage() {
                   room={room}
                   isHovered={hoveredRoom === room.id}
                   isOpening={openingRoom === room.id}
-                  isClosingReturn={closingDoor === room.id}
+                  isClosingReturn={i === closingMobileLoopIndex}
                   onHover={(v) => setHoveredRoom(v ? room.id : null)}
                   onClick={() => handleDoorClick(room)}
                 />
