@@ -35,8 +35,23 @@
     (function(p,e,n,d,o){var v,w,x,y,z;o=p[d]=p[d]||{};o._q=o._q||[];
     v=['initialize','identify','updateOptions','pageLoad','track', 'trackAgent'];for(w=0,x=v.length;w<x;++w)(function(m){
     o[m]=o[m]||function(){o._q[m===v[0]?'unshift':'push']([m].concat([].slice.call(arguments,0)));};})(v[w]);
-    y=e.createElement(n);y.async=!0;y.src='https://cdn.pendo.io/agent/static/'+apiKey+'/pendo.js';
-    z=e.getElementsByTagName(n)[0];z.parentNode.insertBefore(y,z);})(window,document,'script','pendo');
+    // Defer the actual pendo.js agent (large, ~1.6s, scans the DOM on load) until
+    // AFTER the page has painted, so it never competes with the door images for
+    // bandwidth or the main thread during first paint. The stub above keeps
+    // pendo.initialize/track callable immediately — calls just queue in _q and
+    // the agent drains them once it loads. Measured: this is what was holding the
+    // door LCP at ~1.8s; deferring it lets the doors paint right away.
+    function loadAgent(){
+      y=e.createElement(n);y.async=!0;y.src='https://cdn.pendo.io/agent/static/'+apiKey+'/pendo.js';
+      z=e.getElementsByTagName(n)[0];z.parentNode.insertBefore(y,z);
+    }
+    function schedule(){
+      if(p.requestIdleCallback){p.requestIdleCallback(loadAgent,{timeout:3000});}
+      else{p.setTimeout(loadAgent,1500);}
+    }
+    if(p.document.readyState==='complete'){schedule();}
+    else{p.addEventListener('load',schedule);}
+    })(window,document,'script','pendo');
 })('7ee6cbf1-430e-4f26-8e53-61f320d1163f');
 </script>
   </head>
