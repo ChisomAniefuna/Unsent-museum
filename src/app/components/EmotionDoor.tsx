@@ -2,11 +2,13 @@ import { useEffect, useRef, useState } from "react";
 import { motion } from "motion/react";
 import type { RoomDef } from "../data/rooms";
 import { EmotionDoorImage } from "./EmotionDoorImage";
-import { DOOR_LQIP } from "../data/doorLqip";
 
-// A single museum door. Renders an INSTANT colour-filled arch (the room's palette,
-// pure CSS, no image needed) so the whole hall looks complete on the first paint;
-// the photographic door then fades in over it. Opens on hover to reveal the room.
+// A single museum door. The photographic carved-door webp is the ONLY thing
+// ever drawn in the archway — no colour-block, no blurred thumbnail. The doors
+// are preloaded in <head> at high priority, so on virtually every load they are
+// already cached and paint instantly. On a rare cold load the real door fades
+// in sharp once it decodes; the visitor never sees a degraded stand-in. Opens
+// on hover to reveal the room.
 
 interface DoorProps {
   room: RoomDef;
@@ -17,15 +19,11 @@ interface DoorProps {
   onClick: () => void;
 }
 
-// Arch silhouette: semicircular top on a near-square base. Used for the instant
-// placeholder so there's a door-shaped colour block before the photo decodes.
-const ARCH_RADIUS = "50% 50% 5% 5% / 31% 31% 3% 3%";
-
-// Synchronously check the browser cache for a door image so we can skip the
-// placeholder entirely when the image is already there (which it almost always
-// is — index.html preloads every door at fetchpriority="high"). Setting
-// `src` on a fresh Image() returns `complete=true` synchronously when the
-// asset is in cache, with naturalWidth>0 once it's also decoded.
+// Synchronously check the browser cache for a door image. Setting `src` on a
+// fresh Image() returns `complete=true` synchronously when the asset is in
+// cache, with naturalWidth>0 once it's also decoded — so we can tell, on the
+// very first render, whether the door can paint immediately (it almost always
+// can: index.html preloads every door at fetchpriority="high").
 function isDoorImageReady(src: string): boolean {
   if (typeof Image === "undefined") return false;
   const probe = new Image();
@@ -35,12 +33,10 @@ function isDoorImageReady(src: string): boolean {
 
 export function EmotionDoor({ room, isHovered, isOpening, isClosingReturn = false, onHover, onClick }: DoorProps) {
   const active = isHovered || isOpening || isClosingReturn;
-  // The colour-arch below is only ever a stand-in until the real door decodes.
-  // Once it loads we drop the placeholder entirely so the door is what shows.
-  // CRITICAL: start `true` when the door is already cached, so the placeholder
-  // paints at opacity 0 from frame zero — no 500ms fade-out of a colour arch
-  // every time the visitor lands. The useEffect below only matters on cold
-  // loads (slow first visit, cache evicted, etc.).
+  // Drives the door's fade-in. CRITICAL: start `true` when the door is already
+  // cached, so the door paints at full opacity from frame zero — instant, no
+  // fade, no stand-in. Only a genuine cold load (first visit, evicted cache)
+  // starts `false` and fades the sharp door in once it decodes.
   const [doorLoaded, setDoorLoaded] = useState(() => isDoorImageReady(room.doorImage));
 
   // Reliable load detection for the cold-load path (React's onLoad can miss
@@ -100,36 +96,6 @@ export function EmotionDoor({ room, isHovered, isOpening, isClosingReturn = fals
       {/* aspect-ratio reserves the door's exact height on first paint (all door
           art is ~1340×2200), so the box never collapses while images load. */}
       <div className="relative w-full [perspective:1200px]" style={{ aspectRatio: "1340 / 2200" }}>
-        {/* INSTANT placeholder: a tiny blurred thumbnail of the REAL carved door,
-            inlined as base64 so it paints on frame 0 with zero network wait. It
-            reads as "the door, sharpening into focus" rather than a flat colour
-            block. A faint colour wash sits behind it (covers the door's
-            transparent areas while the thumbnail is still the only thing drawn).
-            Both fade out once the full-res door decodes on top (z-10). */}
-        <div
-          aria-hidden
-          className="absolute inset-[5%_12%] z-0"
-          style={{
-            background: `linear-gradient(165deg, ${room.palette.accent}55 0%, ${room.palette.bg}55 125%)`,
-            borderRadius: ARCH_RADIUS,
-            opacity: doorLoaded ? 0 : 0.5,
-            transition: "opacity 0.6s ease",
-          }}
-        />
-        <img
-          aria-hidden
-          src={DOOR_LQIP[room.door]}
-          alt=""
-          draggable={false}
-          className="absolute inset-0 z-0 h-full w-full object-contain pointer-events-none"
-          style={{
-            filter: "blur(9px)",
-            transform: "scale(1.05)",
-            opacity: doorLoaded ? 0 : 1,
-            transition: "opacity 0.6s ease",
-          }}
-        />
-
         {/* Portal revealed on hover/open, shows real room preview, masked to arch */}
         <div
           className="absolute inset-0 z-[1] overflow-hidden transition-opacity duration-300"
@@ -161,8 +127,8 @@ export function EmotionDoor({ room, isHovered, isOpening, isClosingReturn = fals
           />
         </div>
 
-        <DoorLeaf room={room} side="left" angle={leftAngle} active={active} isClosingReturn={isClosingReturn} onLoad={() => setDoorLoaded(true)} />
-        <DoorLeaf room={room} side="right" angle={rightAngle} active={active} isClosingReturn={isClosingReturn} />
+        <DoorLeaf room={room} side="left" angle={leftAngle} active={active} loaded={doorLoaded} isClosingReturn={isClosingReturn} onLoad={() => setDoorLoaded(true)} />
+        <DoorLeaf room={room} side="right" angle={rightAngle} active={active} loaded={doorLoaded} isClosingReturn={isClosingReturn} />
 
         <motion.div
           className="absolute bottom-[-32px] left-0 right-0 z-20 flex flex-col items-center gap-1 pb-3 pt-12 pointer-events-none"
@@ -185,7 +151,7 @@ export function EmotionDoor({ room, isHovered, isOpening, isClosingReturn = fals
   );
 }
 
-function DoorLeaf({ room, side, angle, active, isClosingReturn = false, onLoad }: { room: RoomDef; side: "left" | "right"; angle: number; active: boolean; isClosingReturn?: boolean; onLoad?: () => void }) {
+function DoorLeaf({ room, side, angle, active, loaded, isClosingReturn = false, onLoad }: { room: RoomDef; side: "left" | "right"; angle: number; active: boolean; loaded: boolean; isClosingReturn?: boolean; onLoad?: () => void }) {
   const isLeft = side === "left";
   const gradientMask = isLeft
     ? "linear-gradient(to right, black 50%, transparent 50%)"
@@ -202,6 +168,13 @@ function DoorLeaf({ room, side, angle, active, isClosingReturn = false, onLoad }
         maskImage: `${gradientMask}, ${doorMask}`,
         maskSize: "100% 100%, 100% 100%",
         maskComposite: "intersect",
+        // Sharp fade-in for the cold-load case. When the door is already cached
+        // `loaded` is true from frame zero, so this is opacity:1 with no change
+        // to animate — the door is just instantly there. On a cold load it goes
+        // 0 -> 1 once the real webp decodes: the visitor sees the actual carved
+        // door arrive, never a blurred or flat-colour stand-in.
+        opacity: loaded ? 1 : 0,
+        transition: "opacity 0.35s ease",
       }}
       initial={isClosingReturn ? { rotateY: isLeft ? -72 : 72 } : false}
       animate={{ rotateY: angle }}
