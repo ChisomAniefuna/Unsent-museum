@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { motion } from "motion/react";
 import type { RoomDef } from "../data/rooms";
 import { EmotionDoorImage } from "./EmotionDoorImage";
+import { DOOR_LQIP } from "../data/doorLqip";
 
 // A single museum door. Renders an INSTANT colour-filled arch (the room's palette,
 // pure CSS, no image needed) so the whole hall looks complete on the first paint;
@@ -20,16 +21,34 @@ interface DoorProps {
 // placeholder so there's a door-shaped colour block before the photo decodes.
 const ARCH_RADIUS = "50% 50% 5% 5% / 31% 31% 3% 3%";
 
+// Synchronously check the browser cache for a door image so we can skip the
+// placeholder entirely when the image is already there (which it almost always
+// is — index.html preloads every door at fetchpriority="high"). Setting
+// `src` on a fresh Image() returns `complete=true` synchronously when the
+// asset is in cache, with naturalWidth>0 once it's also decoded.
+function isDoorImageReady(src: string): boolean {
+  if (typeof Image === "undefined") return false;
+  const probe = new Image();
+  probe.src = src;
+  return probe.complete && probe.naturalWidth > 0;
+}
+
 export function EmotionDoor({ room, isHovered, isOpening, isClosingReturn = false, onHover, onClick }: DoorProps) {
   const active = isHovered || isOpening || isClosingReturn;
   // The colour-arch below is only ever a stand-in until the real door decodes.
   // Once it loads we drop the placeholder entirely so the door is what shows.
-  const [doorLoaded, setDoorLoaded] = useState(false);
+  // CRITICAL: start `true` when the door is already cached, so the placeholder
+  // paints at opacity 0 from frame zero — no 500ms fade-out of a colour arch
+  // every time the visitor lands. The useEffect below only matters on cold
+  // loads (slow first visit, cache evicted, etc.).
+  const [doorLoaded, setDoorLoaded] = useState(() => isDoorImageReady(room.doorImage));
 
-  // Reliable load detection (React's onLoad can miss already-cached images, and
-  // these doors are preloaded so they're usually cached). Checking `complete`
-  // covers the cache hit; the listener covers a cold load.
+  // Reliable load detection for the cold-load path (React's onLoad can miss
+  // already-cached images). Skip the listener entirely when we already know
+  // the image is ready — saves an in-memory Image() + an event listener pair
+  // per door per mount.
   useEffect(() => {
+    if (doorLoaded) return;
     const probe = new Image();
     probe.src = room.doorImage;
     if (probe.complete) { setDoorLoaded(true); return; }
@@ -40,7 +59,7 @@ export function EmotionDoor({ room, isHovered, isOpening, isClosingReturn = fals
       probe.removeEventListener("load", done);
       probe.removeEventListener("error", done);
     };
-  }, [room.doorImage]);
+  }, [room.doorImage, doorLoaded]);
   const leftAngle = isOpening ? -76 : isHovered ? -10 : 0;
   const rightAngle = isOpening ? 76 : isHovered ? 10 : 0;
 
@@ -81,16 +100,33 @@ export function EmotionDoor({ room, isHovered, isOpening, isClosingReturn = fals
       {/* aspect-ratio reserves the door's exact height on first paint (all door
           art is ~1340×2200), so the box never collapses while images load. */}
       <div className="relative w-full [perspective:1200px]" style={{ aspectRatio: "1340 / 2200" }}>
-        {/* INSTANT placeholder, a door-shaped block in the room's colour, drawn in
-            pure CSS so the composition is complete from frame 0, before any image. */}
+        {/* INSTANT placeholder: a tiny blurred thumbnail of the REAL carved door,
+            inlined as base64 so it paints on frame 0 with zero network wait. It
+            reads as "the door, sharpening into focus" rather than a flat colour
+            block. A faint colour wash sits behind it (covers the door's
+            transparent areas while the thumbnail is still the only thing drawn).
+            Both fade out once the full-res door decodes on top (z-10). */}
         <div
           aria-hidden
           className="absolute inset-[5%_12%] z-0"
           style={{
-            background: `linear-gradient(165deg, ${room.palette.accent} 0%, ${room.palette.bg} 125%)`,
+            background: `linear-gradient(165deg, ${room.palette.accent}55 0%, ${room.palette.bg}55 125%)`,
             borderRadius: ARCH_RADIUS,
-            opacity: doorLoaded ? 0 : 0.7,
-            transition: "opacity 0.5s ease",
+            opacity: doorLoaded ? 0 : 0.5,
+            transition: "opacity 0.6s ease",
+          }}
+        />
+        <img
+          aria-hidden
+          src={DOOR_LQIP[room.door]}
+          alt=""
+          draggable={false}
+          className="absolute inset-0 z-0 h-full w-full object-contain pointer-events-none"
+          style={{
+            filter: "blur(9px)",
+            transform: "scale(1.05)",
+            opacity: doorLoaded ? 0 : 1,
+            transition: "opacity 0.6s ease",
           }}
         />
 
