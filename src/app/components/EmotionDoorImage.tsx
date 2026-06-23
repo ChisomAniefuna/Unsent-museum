@@ -3,8 +3,8 @@ import { ImageWithFallback } from "./figma/ImageWithFallback";
 
 // Served from /public so the URLs are stable and can be preloaded directly from
 // <head> in index.html, instead of waiting for this module to execute on JS
-// boot. Same art + alpha as before, just relocated. 700px-wide webps at q=72,
-// ~150 KB each; used both as the visible door and as the CSS mask shape.
+// boot. 500px-wide webps at q=70, ~78 KB each; used both as the visible door
+// and as the CSS mask shape.
 export type DoorId = "love" | "grief" | "hope" | "regret" | "closure";
 
 export const DOOR_IMAGE_SRC: Record<DoorId, string> = {
@@ -29,6 +29,10 @@ export function EmotionDoorImage({ door, alt, loading = "eager", draggable = fal
       src={DOOR_IMAGE_SRC[door]}
       alt={alt ?? ""}
       loading={loading}
+      // Decode synchronously so a cached door paints in the SAME frame React
+      // inserts it (the common case on a room return), instead of the browser
+      // decoding async and popping the door in a frame or two later.
+      decoding="sync"
       draggable={draggable}
       {...props}
     />

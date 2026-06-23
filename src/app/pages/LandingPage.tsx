@@ -8,6 +8,27 @@ import { LandingMuseumBackground } from "../components/LandingMuseumBackground";
 
 const MOBILE_LOOP_ROOMS = [ROOMS[ROOMS.length - 1], ...ROOMS, ROOMS[0]];
 
+// Render ONLY the layout that matches the viewport instead of mounting both the
+// desktop grid AND the mobile carousel and hiding one with CSS. A hidden-but-
+// mounted door still costs a full React mount + image decode + mask compositing.
+// On desktop that meant building 12 EmotionDoors (5 grid + 7 carousel) to show
+// 5 — which delayed the doors painting on every landing load and every room
+// return. Gating on a media query renders just the 5 (or 7) that are visible.
+function useIsDesktop() {
+  const query = "(min-width: 1024px)"; // Tailwind's lg breakpoint
+  const [isDesktop, setIsDesktop] = useState(
+    () => typeof window !== "undefined" && window.matchMedia(query).matches
+  );
+  useEffect(() => {
+    const mq = window.matchMedia(query);
+    const onChange = () => setIsDesktop(mq.matches);
+    setIsDesktop(mq.matches);
+    mq.addEventListener("change", onChange);
+    return () => mq.removeEventListener("change", onChange);
+  }, []);
+  return isDesktop;
+}
+
 export function LandingPage() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -25,6 +46,7 @@ export function LandingPage() {
     return i >= 0 ? i : 0;
   })();
   const [activeIndex, setActiveIndex] = useState(initialIndex);
+  const isDesktop = useIsDesktop();
   const carouselRef = useRef<HTMLDivElement>(null);
   const scrollSettleRef = useRef<number | null>(null);
   const isLoopJumpingRef = useRef(false);
@@ -165,14 +187,15 @@ export function LandingPage() {
           </p>
         </motion.header>
 
-        {/* Desktop: 5-column grid */}
-        <div className="hidden lg:grid mx-auto mt-[min(7vh,3.5rem)] w-full max-w-6xl grid-cols-5 gap-5">
-          {ROOMS.map((room, i) => (
-            <motion.div
+        {/* Desktop: 5-column grid. Rendered only at lg+ so the mobile carousel's
+            doors aren't also mounted (and vice-versa) — half the doors to build,
+            so they paint immediately. No entrance animation: the doors ARE the
+            landing page and must be visible the instant it renders. */}
+        {isDesktop && (
+        <div className="grid mx-auto mt-[min(7vh,3.5rem)] w-full max-w-6xl grid-cols-5 gap-5">
+          {ROOMS.map((room) => (
+            <div
               key={room.id}
-              initial={false}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.08 * i, duration: 0.55, ease: [0.25, 0.1, 0.25, 1] }}
               className="isolate"
               style={{ zIndex: openingRoom === room.id || hoveredRoom === room.id ? 50 : 1 }}
             >
@@ -184,12 +207,14 @@ export function LandingPage() {
                 onHover={(v) => setHoveredRoom(v ? room.id : null)}
                 onClick={() => handleDoorClick(room)}
               />
-            </motion.div>
+            </div>
           ))}
         </div>
+        )}
 
-        {/* Mobile + tablet: horizontal snap carousel */}
-        <div className="lg:hidden mt-[min(5vh,2.25rem)] flex flex-col items-center w-full">
+        {/* Mobile + tablet: horizontal snap carousel (rendered only below lg) */}
+        {!isDesktop && (
+        <div className="mt-[min(5vh,2.25rem)] flex flex-col items-center w-full">
           <div
             ref={carouselRef}
             onScroll={handleCarouselScroll}
@@ -201,19 +226,14 @@ export function LandingPage() {
               paddingBottom: 16,
             }}
           >
-            {MOBILE_LOOP_ROOMS.map((room, i) => {
-              const realIndex = (i - 1 + ROOMS.length) % ROOMS.length;
-              return (
-              <motion.div
+            {MOBILE_LOOP_ROOMS.map((room, i) => (
+              <div
                 key={`${room.id}-${i}`}
                 className="flex-none snap-center px-2 isolate"
                 style={{
                   width: "72vw",
                   zIndex: openingRoom === room.id ? 50 : 1,
                 }}
-                initial={closingDoor ? false : { opacity: 0, y: 26 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.07 * realIndex, duration: 0.5, ease: [0.25, 0.1, 0.25, 1] }}
               >
                 <EmotionDoor
                   room={room}
@@ -223,9 +243,8 @@ export function LandingPage() {
                   onHover={(v) => setHoveredRoom(v ? room.id : null)}
                   onClick={() => handleDoorClick(room)}
                 />
-              </motion.div>
-              );
-            })}
+              </div>
+            ))}
           </div>
 
           {/* Dot indicators */}
@@ -249,6 +268,7 @@ export function LandingPage() {
             ))}
           </div>
         </div>
+        )}
       </section>
     </LandingMuseumBackground>
   );
