@@ -1,14 +1,15 @@
-import { useEffect, useRef, useState } from "react";
+import { useRef } from "react";
 import { motion } from "motion/react";
 import type { RoomDef } from "../data/rooms";
 import { EmotionDoorImage } from "./EmotionDoorImage";
 
 // A single museum door. The photographic carved-door webp is the ONLY thing
-// ever drawn in the archway — no colour-block, no blurred thumbnail. The doors
-// are preloaded in <head> at high priority, so on virtually every load they are
-// already cached and paint instantly. On a rare cold load the real door fades
-// in sharp once it decodes; the visitor never sees a degraded stand-in. Opens
-// on hover to reveal the room.
+// ever drawn in the archway — no colour-block, no blurred thumbnail, and no
+// JS "has it loaded yet?" gate. The <img> is always rendered: the browser
+// paints nothing until the webp decodes, then paints the sharp door. Cached
+// (the common case, since index.html preloads every door at high priority) =>
+// instant. Cold => the real door simply appears the moment it arrives, with no
+// artificial invisible-until-detected window. Opens on hover to reveal the room.
 
 interface DoorProps {
   room: RoomDef;
@@ -19,43 +20,8 @@ interface DoorProps {
   onClick: () => void;
 }
 
-// Synchronously check the browser cache for a door image. Setting `src` on a
-// fresh Image() returns `complete=true` synchronously when the asset is in
-// cache, with naturalWidth>0 once it's also decoded — so we can tell, on the
-// very first render, whether the door can paint immediately (it almost always
-// can: index.html preloads every door at fetchpriority="high").
-function isDoorImageReady(src: string): boolean {
-  if (typeof Image === "undefined") return false;
-  const probe = new Image();
-  probe.src = src;
-  return probe.complete && probe.naturalWidth > 0;
-}
-
 export function EmotionDoor({ room, isHovered, isOpening, isClosingReturn = false, onHover, onClick }: DoorProps) {
   const active = isHovered || isOpening || isClosingReturn;
-  // Drives the door's fade-in. CRITICAL: start `true` when the door is already
-  // cached, so the door paints at full opacity from frame zero — instant, no
-  // fade, no stand-in. Only a genuine cold load (first visit, evicted cache)
-  // starts `false` and fades the sharp door in once it decodes.
-  const [doorLoaded, setDoorLoaded] = useState(() => isDoorImageReady(room.doorImage));
-
-  // Reliable load detection for the cold-load path (React's onLoad can miss
-  // already-cached images). Skip the listener entirely when we already know
-  // the image is ready — saves an in-memory Image() + an event listener pair
-  // per door per mount.
-  useEffect(() => {
-    if (doorLoaded) return;
-    const probe = new Image();
-    probe.src = room.doorImage;
-    if (probe.complete) { setDoorLoaded(true); return; }
-    const done = () => setDoorLoaded(true);
-    probe.addEventListener("load", done);
-    probe.addEventListener("error", done); // never trap the placeholder on a failed load
-    return () => {
-      probe.removeEventListener("load", done);
-      probe.removeEventListener("error", done);
-    };
-  }, [room.doorImage, doorLoaded]);
   const leftAngle = isOpening ? -76 : isHovered ? -10 : 0;
   const rightAngle = isOpening ? 76 : isHovered ? 10 : 0;
 
@@ -127,8 +93,8 @@ export function EmotionDoor({ room, isHovered, isOpening, isClosingReturn = fals
           />
         </div>
 
-        <DoorLeaf room={room} side="left" angle={leftAngle} active={active} loaded={doorLoaded} isClosingReturn={isClosingReturn} onLoad={() => setDoorLoaded(true)} />
-        <DoorLeaf room={room} side="right" angle={rightAngle} active={active} loaded={doorLoaded} isClosingReturn={isClosingReturn} />
+        <DoorLeaf room={room} side="left" angle={leftAngle} active={active} isClosingReturn={isClosingReturn} />
+        <DoorLeaf room={room} side="right" angle={rightAngle} active={active} isClosingReturn={isClosingReturn} />
 
         <motion.div
           className="absolute bottom-[-32px] left-0 right-0 z-20 flex flex-col items-center gap-1 pb-3 pt-12 pointer-events-none"
@@ -151,7 +117,7 @@ export function EmotionDoor({ room, isHovered, isOpening, isClosingReturn = fals
   );
 }
 
-function DoorLeaf({ room, side, angle, active, loaded, isClosingReturn = false, onLoad }: { room: RoomDef; side: "left" | "right"; angle: number; active: boolean; loaded: boolean; isClosingReturn?: boolean; onLoad?: () => void }) {
+function DoorLeaf({ room, side, angle, active, isClosingReturn = false }: { room: RoomDef; side: "left" | "right"; angle: number; active: boolean; isClosingReturn?: boolean }) {
   const isLeft = side === "left";
   const gradientMask = isLeft
     ? "linear-gradient(to right, black 50%, transparent 50%)"
@@ -168,13 +134,6 @@ function DoorLeaf({ room, side, angle, active, loaded, isClosingReturn = false, 
         maskImage: `${gradientMask}, ${doorMask}`,
         maskSize: "100% 100%, 100% 100%",
         maskComposite: "intersect",
-        // Sharp fade-in for the cold-load case. When the door is already cached
-        // `loaded` is true from frame zero, so this is opacity:1 with no change
-        // to animate — the door is just instantly there. On a cold load it goes
-        // 0 -> 1 once the real webp decodes: the visitor sees the actual carved
-        // door arrive, never a blurred or flat-colour stand-in.
-        opacity: loaded ? 1 : 0,
-        transition: "opacity 0.35s ease",
       }}
       initial={isClosingReturn ? { rotateY: isLeft ? -72 : 72 } : false}
       animate={{ rotateY: angle }}
@@ -186,7 +145,6 @@ function DoorLeaf({ room, side, angle, active, loaded, isClosingReturn = false, 
         loading="eager"
         className="absolute inset-0 h-full w-full object-contain pointer-events-none"
         draggable={false}
-        onLoad={onLoad}
       />
     </motion.div>
   );
