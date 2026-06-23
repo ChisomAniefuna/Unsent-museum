@@ -64,7 +64,7 @@ export function initAnalytics() {
   inited = true;
   const { id, firstSeen } = readOrCreateVisitorId();
   window.pendo?.initialize({
-    visitor: { id, anonymous: true, first_seen: firstSeen },
+    visitor: { id, first_seen: firstSeen },
     account: { id: "unsent-museum" },
   });
 }
