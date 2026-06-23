@@ -93,8 +93,22 @@ export function EmotionDoor({ room, isHovered, isOpening, isClosingReturn = fals
           />
         </div>
 
-        <DoorLeaf room={room} side="left" angle={leftAngle} active={active} isClosingReturn={isClosingReturn} />
-        <DoorLeaf room={room} side="right" angle={rightAngle} active={active} isClosingReturn={isClosingReturn} />
+        {active ? (
+          <>
+            <DoorLeaf room={room} side="left" angle={leftAngle} isClosingReturn={isClosingReturn} />
+            <DoorLeaf room={room} side="right" angle={rightAngle} isClosingReturn={isClosingReturn} />
+          </>
+        ) : (
+          <div className="absolute inset-0 z-10">
+            <EmotionDoorImage
+              door={room.door}
+              alt=""
+              loading="eager"
+              className="absolute inset-0 h-full w-full object-contain pointer-events-none"
+              draggable={false}
+            />
+          </div>
+        )}
 
         <motion.div
           className="absolute bottom-[-32px] left-0 right-0 z-20 flex flex-col items-center gap-1 pb-3 pt-12 pointer-events-none"
@@ -117,7 +131,7 @@ export function EmotionDoor({ room, isHovered, isOpening, isClosingReturn = fals
   );
 }
 
-function DoorLeaf({ room, side, angle, active, isClosingReturn = false }: { room: RoomDef; side: "left" | "right"; angle: number; active: boolean; isClosingReturn?: boolean }) {
+function DoorLeaf({ room, side, angle, isClosingReturn = false }: { room: RoomDef; side: "left" | "right"; angle: number; isClosingReturn?: boolean }) {
   const isLeft = side === "left";
   const gradientMask = isLeft
     ? "linear-gradient(to right, black 50%, transparent 50%)"
@@ -137,7 +151,7 @@ function DoorLeaf({ room, side, angle, active, isClosingReturn = false }: { room
       }}
       initial={isClosingReturn ? { rotateY: isLeft ? -72 : 72 } : false}
       animate={{ rotateY: angle }}
-      transition={{ duration: isClosingReturn ? 0.78 : active ? 0.6 : 0.35, ease: [0.25, 0.1, 0.25, 1] }}
+      transition={{ duration: isClosingReturn ? 0.78 : 0.6, ease: [0.25, 0.1, 0.25, 1] }}
     >
       <EmotionDoorImage
         door={room.door}
