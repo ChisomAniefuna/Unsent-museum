@@ -8,6 +8,11 @@ import { useNavigate } from "react-router";
 import { useLiked, toggleLike, likeCount } from "../hooks/useLikeStore";
 import { CryingMaskRender } from "./CryingMaskCard";
 import { SadnessHeadsRender } from "./SadnessHeadsCard";
+import { ScratchApparitionRender } from "./ScratchApparitionCard";
+import { HeadOnFireRender } from "./HeadOnFireCard";
+import { RewindingHandRender } from "./RewindingHandCard";
+import { ShoutBehindGlassRender } from "./ShoutBehindGlassCard";
+import { SmokingSilhouetteRender } from "./SmokingSilhouetteCard";
 import { downloadArtifact } from "./downloadArtifact";
 import { decodeGenes, isUberShader } from "../data/uberGenes";
 
@@ -142,6 +147,16 @@ export function ArtifactDetailModal({ artifact, onClose }: Props) {
               <CryingMaskRender className="absolute inset-0" />
             ) : artifact.custom === "heads" ? (
               <SadnessHeadsRender className="absolute inset-0" />
+            ) : artifact.custom === "scratch" ? (
+              <ScratchApparitionRender className="absolute inset-0" />
+            ) : artifact.custom === "headfire" ? (
+              <HeadOnFireRender className="absolute inset-0" />
+            ) : artifact.custom === "rewind" ? (
+              <RewindingHandRender className="absolute inset-0" />
+            ) : artifact.custom === "shout" ? (
+              <ShoutBehindGlassRender className="absolute inset-0" />
+            ) : artifact.custom === "smoke" ? (
+              <SmokingSilhouetteRender className="absolute inset-0" />
             ) : (
               <WebGLCanvas
                 fragmentShader={artifact.shader.glsl}

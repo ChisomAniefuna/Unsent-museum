@@ -180,7 +180,6 @@ export function EmotionRoom() {
           className="flex items-center gap-3"
         >
           <PresenceAvatars
-            seeds={room.avatarSeeds}
             count={room.visitorCount}
             accentColor={room.palette.glow}
           />

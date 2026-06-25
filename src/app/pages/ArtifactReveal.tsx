@@ -9,6 +9,11 @@ import { supabase } from "/utils/supabase/info";
 import { useLiked, toggleLike, likeCount } from "../hooks/useLikeStore";
 import { CryingMaskRender } from "../components/CryingMaskCard";
 import { SadnessHeadsRender } from "../components/SadnessHeadsCard";
+import { ScratchApparitionRender } from "../components/ScratchApparitionCard";
+import { HeadOnFireRender } from "../components/HeadOnFireCard";
+import { RewindingHandRender } from "../components/RewindingHandCard";
+import { ShoutBehindGlassRender } from "../components/ShoutBehindGlassCard";
+import { SmokingSilhouetteRender } from "../components/SmokingSilhouetteCard";
 import { downloadArtifact } from "../components/downloadArtifact";
 
 // Module-level dedup set so artifact_revealed fires once per artifact per session,
@@ -221,6 +226,16 @@ export function ArtifactReveal() {
             <CryingMaskRender className="absolute inset-0" />
           ) : artifact.custom === "heads" ? (
             <SadnessHeadsRender className="absolute inset-0" />
+          ) : artifact.custom === "scratch" ? (
+            <ScratchApparitionRender className="absolute inset-0" />
+          ) : artifact.custom === "headfire" ? (
+            <HeadOnFireRender className="absolute inset-0" />
+          ) : artifact.custom === "rewind" ? (
+            <RewindingHandRender className="absolute inset-0" />
+          ) : artifact.custom === "shout" ? (
+            <ShoutBehindGlassRender className="absolute inset-0" />
+          ) : artifact.custom === "smoke" ? (
+            <SmokingSilhouetteRender className="absolute inset-0" />
           ) : (
             <WebGLCanvas
               fragmentShader={artifact.shader.glsl}

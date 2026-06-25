@@ -11,6 +11,11 @@ import { ArtifactDetailModal } from "../components/ArtifactDetailModal";
 import { useArtifacts } from "../hooks/useArtifacts";
 import { CryingMaskCard } from "../components/CryingMaskCard";
 import { SadnessHeadsCard } from "../components/SadnessHeadsCard";
+import { ScratchApparitionCard } from "../components/ScratchApparitionCard";
+import { HeadOnFireCard } from "../components/HeadOnFireCard";
+import { RewindingHandCard } from "../components/RewindingHandCard";
+import { ShoutBehindGlassCard } from "../components/ShoutBehindGlassCard";
+import { SmokingSilhouetteCard } from "../components/SmokingSilhouetteCard";
 
 type SortMode = "newest" | "liked" | "shared";
 type ViewMode = "carousel" | "grid";
@@ -279,6 +284,16 @@ export function ArtifactGallery() {
                         <CryingMaskCard artifact={artifact} showTag={showTags} onClick={() => setSelectedArtifact(artifact)} />
                       ) : artifact.custom === "heads" ? (
                         <SadnessHeadsCard artifact={artifact} showTag={showTags} onClick={() => setSelectedArtifact(artifact)} />
+                      ) : artifact.custom === "scratch" ? (
+                        <ScratchApparitionCard artifact={artifact} showTag={showTags} onClick={() => setSelectedArtifact(artifact)} />
+                      ) : artifact.custom === "headfire" ? (
+                        <HeadOnFireCard artifact={artifact} showTag={showTags} onClick={() => setSelectedArtifact(artifact)} />
+                      ) : artifact.custom === "rewind" ? (
+                        <RewindingHandCard artifact={artifact} showTag={showTags} onClick={() => setSelectedArtifact(artifact)} />
+                      ) : artifact.custom === "shout" ? (
+                        <ShoutBehindGlassCard artifact={artifact} showTag={showTags} onClick={() => setSelectedArtifact(artifact)} />
+                      ) : artifact.custom === "smoke" ? (
+                        <SmokingSilhouetteCard artifact={artifact} showTag={showTags} onClick={() => setSelectedArtifact(artifact)} />
                       ) : (
                         <ShaderArtifactCard
                           artifact={artifact}

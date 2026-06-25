@@ -254,7 +254,7 @@ interface Props { onClick?: () => void; showTag?: boolean; artifact?: Artifact; 
 export function CryingMaskCard({ onClick, showTag, artifact }: Props) {
   const id = artifact?.id ?? "mock-mask";
   const liked = useLiked(id);
-  const likes = likeCount(artifact?.likes ?? 312, liked);
+  const likes = likeCount(artifact?.likes ?? 0, liked);
   const [hovered, setHovered] = useState(false);
 
   function handleLike(e: React.MouseEvent) {

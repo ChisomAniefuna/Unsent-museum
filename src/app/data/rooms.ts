@@ -42,8 +42,8 @@ export const ROOMS: RoomDef[] = [
     fallbackImage: loveImage,
     videoUrl: "https://res.cloudinary.com/dofuxlbmq/video/upload/v1781127346/love_zxrvf8.mp4",
     palette: { bg: "#0a0105", accent: "#820307", glow: "#ff6b7a", text: "#ffc088" },
-    visitorCount: 128,
-    avatarSeeds: ["A", "B", "C", "D", "E"],
+    visitorCount: 1,
+    avatarSeeds: ["A"],
   },
   {
     id: "grief",
@@ -56,8 +56,8 @@ export const ROOMS: RoomDef[] = [
     fallbackImage: griefImage,
     videoUrl: "https://res.cloudinary.com/dofuxlbmq/video/upload/v1781534819/Grief_video_hx8uwk.mp4",
     palette: { bg: "#0d0b12", accent: "#4a3d5e", glow: "#9b7ed9", text: "#d1c7dd" },
-    visitorCount: 91,
-    avatarSeeds: ["F", "G", "H", "I", "J"],
+    visitorCount: 1,
+    avatarSeeds: ["A"],
   },
   {
     id: "hope",
@@ -70,8 +70,8 @@ export const ROOMS: RoomDef[] = [
     fallbackImage: hopeImage,
     videoUrl: "https://res.cloudinary.com/dofuxlbmq/video/upload/v1781215919/Hope_wv8avz.mp4",
     palette: { bg: "#060400", accent: "#8b5e14", glow: "#ffd166", text: "#ffe8a0" },
-    visitorCount: 156,
-    avatarSeeds: ["K", "L", "M", "N", "O"],
+    visitorCount: 1,
+    avatarSeeds: ["A"],
   },
   {
     id: "regret",
@@ -84,8 +84,8 @@ export const ROOMS: RoomDef[] = [
     fallbackImage: regretImage,
     videoUrl: "https://res.cloudinary.com/dofuxlbmq/video/upload/v1781215901/Regret_axzl9b.mp4",
     palette: { bg: "#010308", accent: "#0e3a5c", glow: "#4a9abe", text: "#9fd4e8" },
-    visitorCount: 74,
-    avatarSeeds: ["P", "Q", "R", "S", "T"],
+    visitorCount: 1,
+    avatarSeeds: ["A"],
   },
   {
     id: "closure",
@@ -98,8 +98,8 @@ export const ROOMS: RoomDef[] = [
     fallbackImage: closureImage,
     videoUrl: "https://res.cloudinary.com/dofuxlbmq/video/upload/v1781534772/Closure_video_xtmue4.mp4",
     palette: { bg: "#040a07", accent: "#0a7a5c", glow: "#2dd4a0", text: "#a8ffda" },
-    visitorCount: 62,
-    avatarSeeds: ["U", "V", "W", "X", "Y"],
+    visitorCount: 1,
+    avatarSeeds: ["A"],
   },
 ];
 

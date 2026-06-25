@@ -77,6 +77,7 @@ export function SadnessHeadsRender({ className }: { className?: string }) {
   const cssH      = useRef(300);
   const dpr       = useRef(1);
   const pointer   = useRef({ x: 0, y: 0, active: false });
+  const glyphPx   = useRef(10);             // glyph font size, scaled to cell size
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -113,17 +114,22 @@ export function SadnessHeadsRender({ className }: { className?: string }) {
       syncSize();
       const w = cssW.current, h = cssH.current;
       const mobile = w < 480;
-      const pixSize = mobile ? 10 : 9;
       const scale = Math.min(
-        (w * (mobile ? 0.94 : 0.84)) / img.naturalWidth,
-        (h * (mobile ? 0.94 : 0.84)) / img.naturalHeight,
+        (w * (mobile ? 0.96 : 0.92)) / img.naturalWidth,
+        (h * (mobile ? 0.96 : 0.92)) / img.naturalHeight,
       );
       const rw = img.naturalWidth * scale, rh = img.naturalHeight * scale;
       const left = w * 0.5 - rw / 2, top = h * (mobile ? 0.56 : 0.55) - rh / 2;
+      // Sample densely enough that the five faces actually read, even in a small
+      // card. pixSize derives from the rendered size so detail stays constant
+      // across the card, carousel, modal and reveal surfaces.
+      const targetRows = mobile ? 44 : 48;
+      const pixSize = Math.max(3, Math.round(Math.min(rw, rh) / targetRows));
       const sw = Math.max(1, Math.floor(rw / pixSize));
       const sh = Math.max(1, Math.floor(rh / pixSize));
       const cw = rw / sw, ch = rh / sh;
-      const ps = Math.max(1, Math.min(cw, ch) - 1);
+      const ps = Math.max(1, Math.min(cw, ch) - 0.4);
+      glyphPx.current = Math.max(3.5, Math.min(cw, ch) * 1.2);
 
       const tmp = document.createElement("canvas");
       tmp.width = sw; tmp.height = sh;
@@ -249,8 +255,7 @@ export function SadnessHeadsRender({ className }: { className?: string }) {
 
       ctx.clearRect(0, 0, w, h);
       const mobile = w < 480;
-      const pixSize = mobile ? 10 : 9;
-      ctx.font = `${Math.max(9, pixSize * 1.32)}px ui-monospace, SFMono-Regular, Menlo, Consolas, monospace`;
+      ctx.font = `${glyphPx.current}px ui-monospace, SFMono-Regular, Menlo, Consolas, monospace`;
       ctx.textAlign = "center";
       ctx.textBaseline = "middle";
 
@@ -372,7 +377,7 @@ export function SadnessHeadsRender({ className }: { className?: string }) {
 export function SadnessHeadsCard({ onClick, showTag, artifact }: { onClick?: () => void; showTag?: boolean; artifact?: Artifact }) {
   const id = artifact?.id ?? "mock-heads";
   const liked = useLiked(id);
-  const likes = likeCount(artifact?.likes ?? 287, liked);
+  const likes = likeCount(artifact?.likes ?? 0, liked);
   const [hovered, setHovered] = useState(false);
 
   return (

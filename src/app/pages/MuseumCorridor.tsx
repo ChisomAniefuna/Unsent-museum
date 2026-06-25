@@ -338,7 +338,6 @@ function EmotionDoor({ room, isHovered, isOpening, onHover, onClick }: DoorProps
           {room.tagline}
         </p>
         <PresenceAvatars
-          seeds={room.avatarSeeds}
           count={room.visitorCount}
           accentColor={room.palette.glow}
         />

@@ -5,6 +5,11 @@ import { ROOM_MAP } from "../data/rooms";
 import { ShaderThumb } from "./ShaderThumb";
 import { CryingMaskRender } from "./CryingMaskCard";
 import { SadnessHeadsRender } from "./SadnessHeadsCard";
+import { ScratchApparitionRender } from "./ScratchApparitionCard";
+import { HeadOnFireRender } from "./HeadOnFireCard";
+import { RewindingHandRender } from "./RewindingHandCard";
+import { ShoutBehindGlassRender } from "./ShoutBehindGlassCard";
+import { SmokingSilhouetteRender } from "./SmokingSilhouetteCard";
 
 // A 3D coverflow of artifact cards, the immersive "museum walk" view. The centred
 // card faces the viewer; neighbours recede in depth and tilt away. Navigate by
@@ -178,6 +183,16 @@ export function ShaderCarousel3D({ artifacts, accentColor, onSelect, showTags }:
                   <CryingMaskRender className="absolute inset-0" />
                 ) : artifact.custom === "heads" ? (
                   <SadnessHeadsRender className="absolute inset-0" />
+                ) : artifact.custom === "scratch" ? (
+                  <ScratchApparitionRender className="absolute inset-0" />
+                ) : artifact.custom === "headfire" ? (
+                  <HeadOnFireRender className="absolute inset-0" />
+                ) : artifact.custom === "rewind" ? (
+                  <RewindingHandRender className="absolute inset-0" />
+                ) : artifact.custom === "shout" ? (
+                  <ShoutBehindGlassRender className="absolute inset-0" />
+                ) : artifact.custom === "smoke" ? (
+                  <SmokingSilhouetteRender className="absolute inset-0" />
                 ) : (
                   <ShaderThumb
                     fragmentShader={artifact.shader.glsl}
