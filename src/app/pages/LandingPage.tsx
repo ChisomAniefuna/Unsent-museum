@@ -11,6 +11,12 @@ const MOBILE_LOOP_ROOMS = [ROOMS[ROOMS.length - 1], ...ROOMS, ROOMS[0]];
 
 warmDoorImages();
 
+let roomRoutePreload: Promise<unknown> | null = null;
+
+function preloadRoomRoute() {
+  roomRoutePreload ??= import("./EmotionRoom");
+}
+
 // Render ONLY the layout that matches the viewport instead of mounting both the
 // desktop grid AND the mobile carousel and hiding one with CSS. A hidden-but-
 // mounted door still costs a full React mount + image decode + mask compositing.
@@ -53,13 +59,9 @@ export function LandingPage() {
   const carouselRef = useRef<HTMLDivElement>(null);
   const scrollSettleRef = useRef<number | null>(null);
   const isLoopJumpingRef = useRef(false);
-  const closingMobileRoomIndex = closingDoor
-    ? ROOMS.findIndex((room) => room.id === closingDoor)
-    : -1;
-  const closingMobileLoopIndex = closingMobileRoomIndex >= 0 ? closingMobileRoomIndex + 1 : -1;
-
   function handleDoorClick(room: RoomDef) {
     if (openingRoom) return;
+    preloadRoomRoute();
     setOpeningRoom(room.id);
     pendo.track("emotion_room_entered", {
       emotion: room.id,
@@ -113,6 +115,11 @@ export function LandingPage() {
     setActiveIndex(i);
   }
 
+  function handleDoorHover(roomId: string, isHovered: boolean) {
+    setHoveredRoom(isHovered ? roomId : null);
+    if (isHovered) preloadRoomRoute();
+  }
+
   // Position the carousel BEFORE the browser paints. useLayoutEffect runs
   // synchronously after DOM mutations but before paint, so the carousel is
   // already at the correct scroll position on frame zero. Doing this in a
@@ -137,9 +144,10 @@ export function LandingPage() {
     });
   }, [closingDoor]);
 
-  // Returning from a room should feel like the same doorway closing behind the visitor,
-  // not like a fresh museum load. The route still remounts, but only the visited door
-  // receives the closing animation and the history state is immediately cleared.
+  // Clear the return marker after the landing has had a beat to restore. The
+  // marker is still useful for positioning the mobile carousel on the correct
+  // door before paint, but the landing itself always renders closed doors right
+  // away so the visitor never sees an empty hall while door leaves/masks mount.
   useEffect(() => {
     if (!closingDoor) return;
 
@@ -210,8 +218,7 @@ export function LandingPage() {
                 room={room}
                 isHovered={hoveredRoom === room.id}
                 isOpening={openingRoom === room.id}
-                isClosingReturn={closingDoor === room.id}
-                onHover={(v) => setHoveredRoom(v ? room.id : null)}
+                onHover={(v) => handleDoorHover(room.id, v)}
                 onClick={() => handleDoorClick(room)}
               />
             </div>
@@ -246,8 +253,7 @@ export function LandingPage() {
                   room={room}
                   isHovered={hoveredRoom === room.id}
                   isOpening={openingRoom === room.id}
-                  isClosingReturn={i === closingMobileLoopIndex}
-                  onHover={(v) => setHoveredRoom(v ? room.id : null)}
+                  onHover={(v) => handleDoorHover(room.id, v)}
                   onClick={() => handleDoorClick(room)}
                 />
               </div>

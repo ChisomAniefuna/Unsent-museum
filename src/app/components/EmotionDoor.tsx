@@ -15,13 +15,13 @@ interface DoorProps {
   room: RoomDef;
   isHovered: boolean;
   isOpening: boolean;
-  isClosingReturn?: boolean;
   onHover: (v: boolean) => void;
   onClick: () => void;
 }
 
-export function EmotionDoor({ room, isHovered, isOpening, isClosingReturn = false, onHover, onClick }: DoorProps) {
-  const active = isHovered || isOpening || isClosingReturn;
+export function EmotionDoor({ room, isHovered, isOpening, onHover, onClick }: DoorProps) {
+  const active = isHovered || isOpening;
+  const hideClosedDoor = isHovered || isOpening;
   const leftAngle = isOpening ? -76 : isHovered ? -10 : 0;
   const rightAngle = isOpening ? 76 : isHovered ? 10 : 0;
 
@@ -95,7 +95,7 @@ export function EmotionDoor({ room, isHovered, isOpening, isClosingReturn = fals
 
         <div
           className="absolute inset-0 z-10 transition-opacity duration-150"
-          style={{ opacity: active ? 0 : 1 }}
+          style={{ opacity: hideClosedDoor ? 0 : 1 }}
         >
           <EmotionDoorImage
             door={room.door}
@@ -108,8 +108,8 @@ export function EmotionDoor({ room, isHovered, isOpening, isClosingReturn = fals
 
         {active && (
           <>
-            <DoorLeaf room={room} side="left" angle={leftAngle} isClosingReturn={isClosingReturn} />
-            <DoorLeaf room={room} side="right" angle={rightAngle} isClosingReturn={isClosingReturn} />
+            <DoorLeaf room={room} side="left" angle={leftAngle} />
+            <DoorLeaf room={room} side="right" angle={rightAngle} />
           </>
         )}
 
@@ -134,7 +134,7 @@ export function EmotionDoor({ room, isHovered, isOpening, isClosingReturn = fals
   );
 }
 
-function DoorLeaf({ room, side, angle, isClosingReturn = false }: { room: RoomDef; side: "left" | "right"; angle: number; isClosingReturn?: boolean }) {
+function DoorLeaf({ room, side, angle }: { room: RoomDef; side: "left" | "right"; angle: number }) {
   const isLeft = side === "left";
   const gradientMask = isLeft
     ? "linear-gradient(to right, black 50%, transparent 50%)"
@@ -152,9 +152,9 @@ function DoorLeaf({ room, side, angle, isClosingReturn = false }: { room: RoomDe
         maskSize: "100% 100%, 100% 100%",
         maskComposite: "intersect",
       }}
-      initial={isClosingReturn ? { rotateY: isLeft ? -72 : 72 } : false}
+      initial={false}
       animate={{ rotateY: angle }}
-      transition={{ duration: isClosingReturn ? 0.78 : 0.6, ease: [0.25, 0.1, 0.25, 1] }}
+      transition={{ duration: 0.6, ease: [0.25, 0.1, 0.25, 1] }}
     >
       <EmotionDoorImage
         door={room.door}

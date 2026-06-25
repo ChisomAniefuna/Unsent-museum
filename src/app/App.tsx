@@ -6,11 +6,25 @@ import { trackPage } from "./analytics";
 
 // Landing is eager so first paint isn't gated on a chunk fetch. Everything
 // else is split off the main bundle and only loaded when its route is hit.
+// LandingPage preloads the room chunk on door hover/touch/click so the core
+// door -> room path is warm before navigation.
 const EmotionRoom = lazy(() => import("./pages/EmotionRoom").then(m => ({ default: m.EmotionRoom })));
 const ArtifactGallery = lazy(() => import("./pages/ArtifactGallery").then(m => ({ default: m.ArtifactGallery })));
 const ArtifactReveal = lazy(() => import("./pages/ArtifactReveal").then(m => ({ default: m.ArtifactReveal })));
 const CryingMaskExhibit = lazy(() => import("./components/CryingMaskExhibit").then(m => ({ default: m.CryingMaskExhibit })));
 const UberPlayground = lazy(() => import("./pages/UberPlayground").then(m => ({ default: m.UberPlayground })));
+
+function RouteFallback() {
+  return (
+    <div
+      className="flex h-full w-full items-center justify-center bg-[#04030a] font-['Cinzel'] text-[11px] font-semibold uppercase tracking-[0.26em] text-white/55"
+      role="status"
+      aria-live="polite"
+    >
+      Opening
+    </div>
+  );
+}
 
 // Pendo's auto pageLoad only fires on hard navigations. This component watches
 // react-router for client-side route changes and reports each one to Pendo so
@@ -38,7 +52,7 @@ export default function App() {
           id="main"
           style={{ width: "100%", height: "100vh", overflowY: "auto", overflowX: "hidden", background: "#04030a", color: "white", fontFamily: "system-ui, sans-serif" }}
         >
-          <Suspense fallback={null}>
+          <Suspense fallback={<RouteFallback />}>
             <Routes>
               <Route path="/" element={<LandingPage />} />
               <Route path="/corridor" element={<Navigate to="/" replace />} />

@@ -19,6 +19,10 @@ export function getDoorImageSrc(door: DoorId) {
   return DOOR_IMAGE_SRC[door];
 }
 
+const highPriorityImageProps = {
+  fetchpriority: "high",
+} as unknown as ComponentProps<typeof ImageWithFallback>;
+
 let doorWarmupStarted = false;
 const warmedDoorImages: HTMLImageElement[] = [];
 
@@ -48,7 +52,7 @@ export function EmotionDoorImage({ door, alt, loading = "eager", draggable = fal
       alt={alt ?? ""}
       loading={loading}
       decoding="async"
-      fetchPriority="high"
+      {...highPriorityImageProps}
       draggable={draggable}
       {...props}
     />
