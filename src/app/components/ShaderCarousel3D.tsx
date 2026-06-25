@@ -39,7 +39,12 @@ export function ShaderCarousel3D({ artifacts, accentColor, onSelect, showTags }:
 
   // Responsive card sizing.
   useEffect(() => {
-    const measure = () => setCardW(Math.max(220, Math.min(window.innerWidth * 0.66, 360)));
+    // Cards are square (shaderH = cardW), so bound by BOTH axes: width keeps the
+    // ribbon from crowding edge-to-edge, height keeps a square card from
+    // overflowing a short window. Cap at 460 so it scales up nicely on large
+    // desktops (was hard-capped at 360, which left the hero card tiny on 1440+).
+    const measure = () =>
+      setCardW(Math.max(240, Math.min(window.innerWidth * 0.62, window.innerHeight * 0.55, 460)));
     measure();
     window.addEventListener("resize", measure);
     return () => window.removeEventListener("resize", measure);
