@@ -1,4 +1,4 @@
-import { useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { motion } from "motion/react";
 import type { RoomDef } from "../data/rooms";
 import { EmotionDoorImage } from "./EmotionDoorImage";
@@ -21,10 +21,25 @@ interface DoorProps {
 }
 
 export function EmotionDoor({ room, isHovered, isOpening, isReturning = false, onHover, onClick }: DoorProps) {
-  const active = isHovered || isOpening;
-  const hideClosedDoor = isHovered || isOpening;
+  const [returnClosing, setReturnClosing] = useState(isReturning);
+
+  useEffect(() => {
+    if (!isReturning) {
+      setReturnClosing(false);
+      return;
+    }
+
+    setReturnClosing(true);
+    const t = window.setTimeout(() => setReturnClosing(false), 680);
+    return () => window.clearTimeout(t);
+  }, [isReturning]);
+
+  const active = isHovered || isOpening || returnClosing;
+  const hideClosedDoor = isHovered || isOpening || returnClosing;
   const leftAngle = isOpening ? -76 : isHovered ? -10 : 0;
   const rightAngle = isOpening ? 76 : isHovered ? 10 : 0;
+  const leftInitialAngle = returnClosing ? -76 : undefined;
+  const rightInitialAngle = returnClosing ? 76 : undefined;
 
   // Prime the room video on hover, a head-start before navigation.
   const preloadRef = useRef<HTMLVideoElement | null>(null);
@@ -94,12 +109,9 @@ export function EmotionDoor({ room, isHovered, isOpening, isReturning = false, o
           />
         </div>
 
-        <motion.div
+        <div
           className="absolute inset-0 z-10 transition-opacity duration-150"
           style={{ opacity: hideClosedDoor ? 0 : 1 }}
-          initial={isReturning ? { scale: 1.025, filter: "brightness(1.08)" } : false}
-          animate={{ scale: 1, filter: "brightness(1)" }}
-          transition={{ duration: 0.5, ease: [0.25, 0.1, 0.25, 1] }}
         >
           <EmotionDoorImage
             door={room.door}
@@ -108,12 +120,12 @@ export function EmotionDoor({ room, isHovered, isOpening, isReturning = false, o
             className="absolute inset-0 h-full w-full object-contain pointer-events-none"
             draggable={false}
           />
-        </motion.div>
+        </div>
 
         {active && (
           <>
-            <DoorLeaf room={room} side="left" angle={leftAngle} />
-            <DoorLeaf room={room} side="right" angle={rightAngle} />
+            <DoorLeaf room={room} side="left" angle={leftAngle} initialAngle={leftInitialAngle} />
+            <DoorLeaf room={room} side="right" angle={rightAngle} initialAngle={rightInitialAngle} />
           </>
         )}
 
@@ -138,7 +150,7 @@ export function EmotionDoor({ room, isHovered, isOpening, isReturning = false, o
   );
 }
 
-function DoorLeaf({ room, side, angle }: { room: RoomDef; side: "left" | "right"; angle: number }) {
+function DoorLeaf({ room, side, angle, initialAngle }: { room: RoomDef; side: "left" | "right"; angle: number; initialAngle?: number }) {
   const isLeft = side === "left";
   const gradientMask = isLeft
     ? "linear-gradient(to right, black 50%, transparent 50%)"
@@ -156,7 +168,7 @@ function DoorLeaf({ room, side, angle }: { room: RoomDef; side: "left" | "right"
         maskSize: "100% 100%, 100% 100%",
         maskComposite: "intersect",
       }}
-      initial={false}
+      initial={initialAngle === undefined ? false : { rotateY: initialAngle }}
       animate={{ rotateY: angle }}
       transition={{ duration: 0.6, ease: [0.25, 0.1, 0.25, 1] }}
     >

@@ -59,6 +59,11 @@ export function LandingPage() {
   const carouselRef = useRef<HTMLDivElement>(null);
   const scrollSettleRef = useRef<number | null>(null);
   const isLoopJumpingRef = useRef(false);
+  const closingMobileRoomIndex = closingDoor
+    ? ROOMS.findIndex((room) => room.id === closingDoor)
+    : -1;
+  const closingMobileLoopIndex = closingMobileRoomIndex >= 0 ? closingMobileRoomIndex + 1 : -1;
+
   function handleDoorClick(room: RoomDef) {
     if (openingRoom) return;
     preloadRoomRoute();
@@ -153,7 +158,7 @@ export function LandingPage() {
 
     const clearState = window.setTimeout(() => {
       navigate(".", { replace: true, state: null });
-    }, 900);
+    }, 1200);
 
     return () => window.clearTimeout(clearState);
   }, [closingDoor, navigate]);
@@ -206,7 +211,11 @@ export function LandingPage() {
             doors aren't also mounted (and vice-versa) — half the doors to build,
             so they paint immediately. No entrance animation: the doors ARE the
             landing page and must be visible the instant it renders. */}
-        {isDesktop && (
+        {isDesktop && closingDoor && (
+          <ReturnDesktopHall closingDoor={closingDoor} />
+        )}
+
+        {isDesktop && !closingDoor && (
         <div className="grid mx-auto mt-[min(7vh,3.5rem)] w-full max-w-6xl grid-cols-5 gap-5">
           {ROOMS.map((room) => (
             <div
@@ -218,7 +227,6 @@ export function LandingPage() {
                 room={room}
                 isHovered={hoveredRoom === room.id}
                 isOpening={openingRoom === room.id}
-                isReturning={closingDoor === room.id}
                 onHover={(v) => handleDoorHover(room.id, v)}
                 onClick={() => handleDoorClick(room)}
               />
@@ -254,7 +262,7 @@ export function LandingPage() {
                   room={room}
                   isHovered={hoveredRoom === room.id}
                   isOpening={openingRoom === room.id}
-                  isReturning={closingDoor === room.id}
+                  isReturning={i === closingMobileLoopIndex}
                   onHover={(v) => handleDoorHover(room.id, v)}
                   onClick={() => handleDoorClick(room)}
                 />
@@ -286,5 +294,123 @@ export function LandingPage() {
         )}
       </section>
     </LandingMuseumBackground>
+  );
+}
+
+function ReturnDesktopHall({ closingDoor }: { closingDoor: string }) {
+  const [playClosing, setPlayClosing] = useState(false);
+
+  useEffect(() => {
+    const t = window.setTimeout(() => setPlayClosing(true), 220);
+    return () => window.clearTimeout(t);
+  }, [closingDoor]);
+
+  return (
+    <div className="grid mx-auto mt-[min(7vh,3.5rem)] w-full max-w-6xl grid-cols-5 gap-5">
+      {ROOMS.map((room) => {
+        const isClosingDoor = room.id === closingDoor;
+        return (
+          <div key={room.id} className="isolate">
+            <div className="group block w-full select-none">
+              <div className="relative w-full [perspective:1200px]" style={{ aspectRatio: "1340 / 2200" }}>
+                <img
+                  src={room.doorImage}
+                  alt=""
+                  loading="eager"
+                  decoding="async"
+                  draggable={false}
+                  className="absolute inset-0 h-full w-full object-contain pointer-events-none"
+                  style={{ opacity: isClosingDoor && playClosing ? 0 : 1 }}
+                />
+
+                {isClosingDoor && playClosing && <ReturnClosingDoor room={room} />}
+
+                <div className="absolute bottom-[-32px] left-0 right-0 z-20 flex flex-col items-center gap-1 pb-3 pt-12 pointer-events-none">
+                  <span
+                    className="font-['Cinzel'] text-[13px] font-black uppercase tracking-[0.38em] text-[#1a1a1a]/80"
+                    style={{ textShadow: "0 1px 12px rgba(255,255,255,0.6)" }}
+                  >
+                    {room.name}
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+function ReturnClosingDoor({ room }: { room: RoomDef }) {
+  return (
+    <>
+      <div
+        className="absolute inset-0 z-[1] overflow-hidden"
+        style={{
+          WebkitMaskImage: `url(${room.doorImage})`,
+          WebkitMaskSize: "100% 100%",
+          maskImage: `url(${room.doorImage})`,
+          maskSize: "100% 100%",
+          background: room.palette.bg,
+        }}
+      >
+        {room.fallbackImage ? (
+          <img
+            src={room.fallbackImage}
+            alt=""
+            className="absolute inset-0 h-full w-full object-cover pointer-events-none"
+            loading="lazy"
+            draggable={false}
+          />
+        ) : (
+          <div
+            className="absolute inset-0"
+            style={{ background: `radial-gradient(ellipse at 50% 60%, ${room.palette.accent}cc 0%, ${room.palette.bg} 70%)` }}
+          />
+        )}
+        <div
+          className="absolute inset-0 pointer-events-none"
+          style={{ background: `radial-gradient(ellipse at 50% 50%, ${room.palette.glow}30 0%, transparent 70%)` }}
+        />
+      </div>
+
+      <ReturnDoorLeaf room={room} side="left" />
+      <ReturnDoorLeaf room={room} side="right" />
+    </>
+  );
+}
+
+function ReturnDoorLeaf({ room, side }: { room: RoomDef; side: "left" | "right" }) {
+  const isLeft = side === "left";
+  const gradientMask = isLeft
+    ? "linear-gradient(to right, black 50%, transparent 50%)"
+    : "linear-gradient(to right, transparent 50%, black 50%)";
+  const doorMask = `url(${room.doorImage})`;
+  return (
+    <motion.div
+      className="absolute inset-0 z-10 [transform-style:preserve-3d]"
+      style={{
+        transformOrigin: isLeft ? "left center" : "right center",
+        WebkitMaskImage: `${gradientMask}, ${doorMask}`,
+        WebkitMaskSize: "100% 100%, 100% 100%",
+        WebkitMaskComposite: "source-in",
+        maskImage: `${gradientMask}, ${doorMask}`,
+        maskSize: "100% 100%, 100% 100%",
+        maskComposite: "intersect",
+      }}
+      initial={{ rotateY: isLeft ? -76 : 76 }}
+      animate={{ rotateY: 0 }}
+      transition={{ duration: 0.68, ease: [0.25, 0.1, 0.25, 1] }}
+    >
+      <img
+        src={room.doorImage}
+        alt=""
+        loading="eager"
+        decoding="async"
+        draggable={false}
+        className="absolute inset-0 h-full w-full object-contain pointer-events-none"
+      />
+    </motion.div>
   );
 }
