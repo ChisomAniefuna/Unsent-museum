@@ -218,6 +218,7 @@ export function LandingPage() {
                 room={room}
                 isHovered={hoveredRoom === room.id}
                 isOpening={openingRoom === room.id}
+                isReturning={closingDoor === room.id}
                 onHover={(v) => handleDoorHover(room.id, v)}
                 onClick={() => handleDoorClick(room)}
               />
@@ -253,6 +254,7 @@ export function LandingPage() {
                   room={room}
                   isHovered={hoveredRoom === room.id}
                   isOpening={openingRoom === room.id}
+                  isReturning={closingDoor === room.id}
                   onHover={(v) => handleDoorHover(room.id, v)}
                   onClick={() => handleDoorClick(room)}
                 />

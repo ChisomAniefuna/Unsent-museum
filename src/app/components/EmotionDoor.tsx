@@ -15,11 +15,12 @@ interface DoorProps {
   room: RoomDef;
   isHovered: boolean;
   isOpening: boolean;
+  isReturning?: boolean;
   onHover: (v: boolean) => void;
   onClick: () => void;
 }
 
-export function EmotionDoor({ room, isHovered, isOpening, onHover, onClick }: DoorProps) {
+export function EmotionDoor({ room, isHovered, isOpening, isReturning = false, onHover, onClick }: DoorProps) {
   const active = isHovered || isOpening;
   const hideClosedDoor = isHovered || isOpening;
   const leftAngle = isOpening ? -76 : isHovered ? -10 : 0;
@@ -93,9 +94,12 @@ export function EmotionDoor({ room, isHovered, isOpening, onHover, onClick }: Do
           />
         </div>
 
-        <div
+        <motion.div
           className="absolute inset-0 z-10 transition-opacity duration-150"
           style={{ opacity: hideClosedDoor ? 0 : 1 }}
+          initial={isReturning ? { scale: 1.025, filter: "brightness(1.08)" } : false}
+          animate={{ scale: 1, filter: "brightness(1)" }}
+          transition={{ duration: 0.5, ease: [0.25, 0.1, 0.25, 1] }}
         >
           <EmotionDoorImage
             door={room.door}
@@ -104,7 +108,7 @@ export function EmotionDoor({ room, isHovered, isOpening, onHover, onClick }: Do
             className="absolute inset-0 h-full w-full object-contain pointer-events-none"
             draggable={false}
           />
-        </div>
+        </motion.div>
 
         {active && (
           <>
