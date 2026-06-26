@@ -6,6 +6,7 @@ import { ROOMS, RoomDef } from "../data/rooms";
 import { EmotionDoor } from "../components/EmotionDoor";
 import { warmDoorImages } from "../components/EmotionDoorImage";
 import { LandingMuseumBackground } from "../components/LandingMuseumBackground";
+import { trackEvent } from "../analytics";
 
 const MOBILE_LOOP_ROOMS = [ROOMS[ROOMS.length - 1], ...ROOMS, ROOMS[0]];
 
@@ -68,7 +69,7 @@ export function LandingPage() {
     if (openingRoom) return;
     preloadRoomRoute();
     setOpeningRoom(room.id);
-    pendo.track("emotion_room_entered", {
+    trackEvent("emotion_room_entered", {
       emotion: room.id,
       room_name: room.name,
     });

@@ -59,56 +59,89 @@ function simpleHash(str: string): number {
   return Math.abs(h);
 }
 
+const VISUAL_SEED_MOD = 10000;
+
+export function normalizedVisualSeed(seed: number): number {
+  return ((seed % VISUAL_SEED_MOD) + VISUAL_SEED_MOD) % VISUAL_SEED_MOD;
+}
+
 // A stable identity for an artifact's visual DNA, used to guarantee no two
 // artifacts collide on the same emotion+shader+seed combination.
 export function dnaKey(d: ArtifactDNA): string {
-  return `${d.emotion}:${d.shaderIndex}:${d.seed}`;
+  return `${d.emotion}:${d.shaderIndex}:${normalizedVisualSeed(d.seed)}`;
 }
 
-// Seeds already in use, keyed by emotion+seed so a re-roll never produces an
-// exact duplicate. Seeded from THREE sources so we don't collide with anything
+// Visual DNA already in use, keyed by emotion+shader+normalized seed so a
+// re-roll never produces an exact renderer-level duplicate. Seeded from THREE
+// sources so we don't collide with anything
 // the visitor can see:
 //   1. MOCK_ARTIFACTS (the seed gallery shipped with the app)
 //   2. localStorage["unsent_created_v1"] (this visitor's own past creations)
 //   3. Whatever we generate during this session (added as we go)
 // Lazily built on first generate; MOCK_ARTIFACTS is defined later in this module.
-let knownSeeds: Set<string> | null = null;
+let knownVisualKeys: Set<string> | null = null;
 
-function loadPriorCreationSeeds(): string[] {
+function loadPriorCreationKeys(): string[] {
   if (typeof window === "undefined") return [];
   try {
     const raw = window.localStorage.getItem("unsent_created_v1");
     if (!raw) return [];
-    const list = JSON.parse(raw) as { emotion?: string; dna?: { seed?: number } }[];
+    const list = JSON.parse(raw) as { emotion?: string; dna?: ArtifactDNA }[];
     return list
-      .filter((a) => a?.emotion && typeof a.dna?.seed === "number")
-      .map((a) => `${a.emotion}:${a.dna!.seed}`);
+      .filter((a) => a?.emotion && typeof a.dna?.seed === "number" && typeof a.dna?.shaderIndex === "number")
+      .map((a) => dnaKey({ ...a.dna!, emotion: a.emotion! }));
   } catch {
     return [];
   }
 }
 
-function ensureKnownSeeds(): Set<string> {
-  if (knownSeeds) return knownSeeds;
-  knownSeeds = new Set([
-    ...MOCK_ARTIFACTS.map((a) => `${a.emotion}:${a.dna.seed}`),
-    ...loadPriorCreationSeeds(),
+function ensureKnownVisualKeys(): Set<string> {
+  if (knownVisualKeys) return knownVisualKeys;
+  knownVisualKeys = new Set([
+    ...MOCK_ARTIFACTS.map((a) => dnaKey(a.dna)),
+    ...loadPriorCreationKeys(),
   ]);
-  return knownSeeds;
+  return knownVisualKeys;
 }
 
-// Hash a message+emotion into a seed that is not already taken. 16 re-rolls is
-// overkill on a Set with thousands of entries (a 32-bit hash collides at ~p<1e-6
-// per pair) but cheap, so we get effectively-guaranteed uniqueness.
-function uniqueSeed(message: string, emotion: string): number {
-  const known = ensureKnownSeeds();
-  let seed = simpleHash(message + emotion + Date.now() + Math.random().toString());
-  let guard = 0;
-  while (known.has(`${emotion}:${seed}`) && guard++ < 16) {
-    seed = simpleHash(seed + ":" + Math.random().toString());
+export function registerKnownArtifactDNA(dna: ArtifactDNA) {
+  ensureKnownVisualKeys().add(dnaKey(dna));
+}
+
+function randomUint32(): number {
+  if (typeof crypto !== "undefined" && crypto.getRandomValues) {
+    const buf = new Uint32Array(1);
+    crypto.getRandomValues(buf);
+    return buf[0];
   }
-  known.add(`${emotion}:${seed}`);
-  return seed;
+  return Math.floor(Math.random() * 0xffffffff);
+}
+
+function artifactId(): string {
+  if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
+    return `artifact-${crypto.randomUUID()}`;
+  }
+  return `artifact-${Date.now()}-${randomUint32().toString(36)}`;
+}
+
+// Pick a renderer-level visual seed that is not already taken for this room and
+// shader. The returned raw seed keeps extra entropy above VISUAL_SEED_MOD for
+// IDs/metadata, while normalizedVisualSeed(seed) is unique for the shader.
+function uniqueSeed(message: string, emotion: string, shaderIndex: number): number {
+  const known = ensureKnownVisualKeys();
+  const salt = simpleHash(`${message}:${emotion}:${Date.now()}:${randomUint32()}`);
+  let visualSeed = salt % VISUAL_SEED_MOD;
+  let guard = 0;
+  let key = `${emotion}:${shaderIndex}:${visualSeed}`;
+  while (known.has(key) && guard++ < VISUAL_SEED_MOD) {
+    visualSeed = (visualSeed + 1 + (randomUint32() % 9973)) % VISUAL_SEED_MOD;
+    key = `${emotion}:${shaderIndex}:${visualSeed}`;
+  }
+  if (known.has(key)) {
+    throw new Error(`No visual DNA slots left for ${emotion}:${shaderIndex}`);
+  }
+  known.add(key);
+  return visualSeed + (randomUint32() % 100000) * VISUAL_SEED_MOD;
 }
 
 // Round-robin through a room's base shaders so generations cycle through ALL of
@@ -133,12 +166,12 @@ export function generateArtifact(
   visibility: "public" | "private" | "unlisted",
   messageVisibility: "public" | "excerpt" | "hidden"
 ): Artifact {
-  // Unique, non-colliding seed (re-rolls if this emotion+seed already exists).
-  const seed = uniqueSeed(message, emotion);
   const shaders = EMOTION_SHADERS[emotion] || EMOTION_SHADERS.grief;
   // Round-robin pick (cycles through all base shaders); seed stays highly random
   // so a repeated base shader still looks different via its unique arrangement.
   const shaderIndex = nextShaderIndex(emotion, shaders.length);
+  // Unique, non-colliding visual seed for this emotion+shader pair.
+  const seed = uniqueSeed(message, emotion, shaderIndex);
   const shader = shaders[shaderIndex];
   const avatarColor = AVATAR_COLORS[seed % AVATAR_COLORS.length];
   const initials = isAnonymous ? "?" : (displayName || "A").slice(0, 2).toUpperCase();
@@ -181,7 +214,7 @@ export function generateArtifact(
   const excerpt = message;
 
   return {
-    id: `artifact-${seed}-${Date.now()}`,
+    id: artifactId(),
     emotion,
     title: title || generateArtifactTitle(emotion, seed),
     messageExcerpt: excerpt,

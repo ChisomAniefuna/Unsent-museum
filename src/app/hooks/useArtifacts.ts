@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "/utils/supabase/info";
-import { SEED_ARTIFACTS, Artifact, withSafeShader } from "../data/artifacts";
+import { SEED_ARTIFACTS, Artifact, dnaKey, registerKnownArtifactDNA, withSafeShader } from "../data/artifacts";
 
 // Locally-created artifacts are cached in localStorage so EVERY artifact a visitor
 // makes shows up in the gallery immediately and survives reloads, even when the
@@ -55,23 +55,34 @@ function fromRow(row: any): Artifact {
   });
 }
 
+function galleryVisualKey(artifact: Artifact): string {
+  return artifact.custom ? `custom:${artifact.custom}:${artifact.id}` : dnaKey(artifact.dna);
+}
+
 export function useArtifacts() {
   const [serverArtifacts, setServerArtifacts] = useState<Artifact[]>([]);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   const fetchArtifacts = useCallback(async () => {
     try {
+      setLoading(true);
       const { data, error: dbError } = await supabase
         .from("artifacts")
         .select("id, emotion, visibility, created_at, payload")
         .eq("visibility", "public")
-        .order("created_at", { ascending: false });
+        .order("created_at", { ascending: false })
+        .limit(300);
       if (dbError) throw dbError;
-      setServerArtifacts((data ?? []).map(fromRow));
+      const publicArtifacts = (data ?? []).map(fromRow);
+      publicArtifacts.forEach((artifact) => registerKnownArtifactDNA(artifact.dna));
+      setServerArtifacts(publicArtifacts);
       setError(null);
     } catch (err) {
       console.error("Failed to fetch artifacts from Supabase:", err);
       setError(String(err));
+    } finally {
+      setLoading(false);
     }
   }, []);
 
@@ -79,17 +90,47 @@ export function useArtifacts() {
     fetchArtifacts();
   }, [fetchArtifacts]);
 
-  // Gallery shows only the 5+ seed artifacts per room + anything the visitor
-  // created via the form (cached in localStorage). Server-saved artifacts are
-  // kept for persistence and for the /reveal/:id permalink path, but not merged
-  // into the display list.
+  useEffect(() => {
+    const channel = supabase
+      .channel("public-artifacts-gallery")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "artifacts", filter: "visibility=eq.public" },
+        () => { fetchArtifacts(); },
+      )
+      .subscribe();
+
+    function onFocus() {
+      fetchArtifacts();
+    }
+    window.addEventListener("focus", onFocus);
+
+    return () => {
+      window.removeEventListener("focus", onFocus);
+      supabase.removeChannel(channel);
+    };
+  }, [fetchArtifacts]);
+
+  // Gallery shows seed artifacts, this visitor's local creations, and the latest
+  // public server artifacts so a fresh visitor can see work created by others.
+  // Deduping happens by id first and visual DNA second, so exact clones never
+  // appear side-by-side even if older server rows collided before this fix.
   const created = loadCreated();
-  const seen = new Set<string>();
-  const allArtifacts = [...created, ...SEED_ARTIFACTS]
-    .filter((a) => (seen.has(a.id) ? false : (seen.add(a.id), true)))
+  created.forEach((artifact) => registerKnownArtifactDNA(artifact.dna));
+  const seenIds = new Set<string>();
+  const seenVisuals = new Set<string>();
+  const allArtifacts = [...created, ...serverArtifacts, ...SEED_ARTIFACTS]
+    .filter((artifact) => {
+      if (seenIds.has(artifact.id)) return false;
+      seenIds.add(artifact.id);
+      const visualKey = galleryVisualKey(artifact);
+      if (seenVisuals.has(visualKey)) return false;
+      seenVisuals.add(visualKey);
+      return true;
+    })
     .map(withSafeShader);
 
-  return { artifacts: allArtifacts, loading: false, error, refetch: fetchArtifacts };
+  return { artifacts: allArtifacts, loading, error, refetch: fetchArtifacts };
 }
 
 // Atomic +1 to the artifact's likes via a Postgres function. Falls back to a
@@ -104,11 +145,9 @@ export async function likeArtifact(id: string): Promise<number> {
 }
 
 export async function saveArtifact(artifact: Artifact): Promise<Artifact> {
-  // Upsert so a re-saved artifact (e.g. retry after an offline edit) doesn't
-  // produce a duplicate-key error.
   const { data, error } = await supabase
     .from("artifacts")
-    .upsert(toRow(artifact))
+    .insert(toRow(artifact))
     .select("id, emotion, visibility, created_at, payload")
     .single();
   if (error) throw new Error(`Save failed: ${error.message}`);

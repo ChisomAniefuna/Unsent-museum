@@ -6,6 +6,7 @@ import { PresenceAvatars } from "../components/PresenceAvatars";
 import { ArtifactForm } from "../components/ArtifactForm";
 import { Artifact } from "../data/artifacts";
 import { saveArtifact, addCreatedArtifact } from "../hooks/useArtifacts";
+import { trackEvent } from "../analytics";
 
 export function EmotionRoom() {
   const { emotion } = useParams<{ emotion: string }>();
@@ -54,53 +55,55 @@ export function EmotionRoom() {
     }, 220);
   }
 
-  async function handleArtifactGenerated(artifact: Artifact) {
+  function handleArtifactGenerated(artifact: Artifact) {
     setGenerating(true);
     // Cache locally first so the artifact enters the gallery immediately and
     // survives reloads, regardless of whether the backend save succeeds.
     addCreatedArtifact(artifact);
-    try {
-      // Save to Supabase backend
-      const saved = await saveArtifact(artifact);
-      addCreatedArtifact(saved); // keep the cached copy in sync with the server id
-      pendo.track("artifact_created", {
-        emotion: saved.emotion,
-        message_length: saved.messageExcerpt?.length || 0,
-        has_title: !!saved.title,
-        is_anonymous: saved.isAnonymous,
-        visibility: saved.visibility,
-        message_visibility: saved.messageVisibility,
-        shader_index: saved.dna.shaderIndex,
-        seed: saved.dna.seed,
-        artifact_id: saved.id,
-        save_success: true,
+
+    // Do not make the reveal wait on Supabase. The visitor should see their
+    // artifact as soon as it is generated; persistence continues in the
+    // background so new visitors can pick it up from the public gallery.
+    navigate(`/reveal/${artifact.id}`, { state: { artifact } });
+    setGenerating(false);
+    setFormOpen(false);
+
+    saveArtifact(artifact)
+      .then((saved) => {
+        addCreatedArtifact(saved); // keep the cached copy in sync with the server row
+        trackEvent("artifact_created", {
+          emotion: saved.emotion,
+          message_length: saved.messageExcerpt?.length || 0,
+          has_title: !!saved.title,
+          is_anonymous: saved.isAnonymous,
+          visibility: saved.visibility,
+          message_visibility: saved.messageVisibility,
+          shader_index: saved.dna.shaderIndex,
+          seed: saved.dna.seed,
+          artifact_id: saved.id,
+          save_success: true,
+        });
+      })
+      .catch((err) => {
+        console.error("Failed to save artifact:", err);
+        trackEvent("artifact_save_failed", {
+          artifact_id: artifact.id,
+          emotion: artifact.emotion,
+          error_message: String(err instanceof Error ? err.message : err).substring(0, 100),
+        });
+        trackEvent("artifact_created", {
+          emotion: artifact.emotion,
+          message_length: artifact.messageExcerpt?.length || 0,
+          has_title: !!artifact.title,
+          is_anonymous: artifact.isAnonymous,
+          visibility: artifact.visibility,
+          message_visibility: artifact.messageVisibility,
+          shader_index: artifact.dna.shaderIndex,
+          seed: artifact.dna.seed,
+          artifact_id: artifact.id,
+          save_success: false,
+        });
       });
-      navigate(`/reveal/${saved.id}`, { state: { artifact: saved } });
-    } catch (err) {
-      console.error("Failed to save artifact:", err);
-      pendo.track("artifact_save_failed", {
-        artifact_id: artifact.id,
-        emotion: artifact.emotion,
-        error_message: String(err instanceof Error ? err.message : err).substring(0, 100),
-      });
-      pendo.track("artifact_created", {
-        emotion: artifact.emotion,
-        message_length: artifact.messageExcerpt?.length || 0,
-        has_title: !!artifact.title,
-        is_anonymous: artifact.isAnonymous,
-        visibility: artifact.visibility,
-        message_visibility: artifact.messageVisibility,
-        shader_index: artifact.dna.shaderIndex,
-        seed: artifact.dna.seed,
-        artifact_id: artifact.id,
-        save_success: false,
-      });
-      // Fallback: continue anyway with local artifact if save fails
-      navigate(`/reveal/${artifact.id}`, { state: { artifact } });
-    } finally {
-      setGenerating(false);
-      setFormOpen(false);
-    }
   }
 
   if (!room) return null;

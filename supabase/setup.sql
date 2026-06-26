@@ -26,6 +26,22 @@ create index if not exists artifacts_public_recent_idx
 create index if not exists artifacts_emotion_idx
   on public.artifacts (emotion);
 
+-- Prevent exact visual duplicates from entering the public collection. The
+-- renderer uses seed % 10000, so this index mirrors the visual identity that the
+-- visitor actually sees: emotion + shader + normalized visual seed.
+create unique index if not exists artifacts_public_visual_dna_uidx
+  on public.artifacts (
+    emotion,
+    ((payload -> 'dna' ->> 'shaderIndex')::integer),
+    ((((payload -> 'dna' ->> 'seed')::integer % 10000) + 10000) % 10000)
+  )
+  where visibility = 'public'
+    and payload ? 'dna'
+    and (payload -> 'dna') ? 'shaderIndex'
+    and (payload -> 'dna') ? 'seed'
+    and (payload -> 'dna' ->> 'shaderIndex') ~ '^-?[0-9]+$'
+    and (payload -> 'dna' ->> 'seed') ~ '^-?[0-9]+$';
+
 -- ─── 2. Row Level Security ───────────────────────────────────────────────────
 -- The museum is anonymous-write / public-read. Anyone can post a message and
 -- anyone can read public messages. No login, no user identity.
@@ -41,12 +57,18 @@ create policy "Public artifacts are readable"
   using (visibility = 'public');
 
 -- Anyone can insert. (No auth, no profile - the museum is intentionally
--- anonymous.) The frontend generates a deterministic ID; the DB does not.
+-- anonymous.) The frontend generates the artifact ID; the DB does not.
 drop policy if exists "Anyone can submit an artifact" on public.artifacts;
 create policy "Anyone can submit an artifact"
   on public.artifacts
   for insert
   with check (true);
+
+-- New Supabase projects do not automatically expose public tables to the Data
+-- API. These grants keep anon visitors able to read and create public artifacts
+-- while RLS still controls which rows are visible.
+grant usage on schema public to anon, authenticated;
+grant select, insert on table public.artifacts to anon, authenticated;
 
 -- ─── 3. Likes / shares / downloads counters ──────────────────────────────────
 -- These live inside the JSONB payload. To increment them atomically (without

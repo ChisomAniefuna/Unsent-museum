@@ -1,5 +1,6 @@
 import { Artifact } from "../data/artifacts";
 import { renderShader } from "./shaderEngine";
+import { trackEvent } from "../analytics";
 
 // Save a PNG of an artifact. For ordinary shader artifacts we render a fresh 1024²
 // frame through the shared engine. For custom canvas pieces (mask / heads) there is
@@ -46,7 +47,7 @@ export function downloadArtifact(
     // Defer revocation a tick so WebKit/Safari has started reading the blob
     // before the URL is invalidated (same-tick revoke can yield an empty file).
     setTimeout(() => URL.revokeObjectURL(url), 0);
-    pendo.track("artifact_downloaded", {
+    trackEvent("artifact_downloaded", {
       artifact_id: artifact.id,
       emotion: artifact.emotion,
       artifact_type: artifact.custom || "shader",

@@ -8,6 +8,7 @@ import closureUber from "../data/generated/closure-uber";
 import flowerUber from "../data/generated/flower-mandala-uber";
 import griefAsciiScenes from "../data/generated/grief-ascii-scenes";
 import { decodeGenes, UberEmotion, GENE_LABELS } from "../data/uberGenes";
+import { trackEvent } from "../analytics";
 
 const SHADERS = {
   love: loveUber,
@@ -183,7 +184,7 @@ export function UberPlayground() {
                 key={e}
                 onClick={() => {
                   setEmotion(e);
-                  pendo.track("shader_experimented", {
+                  trackEvent("shader_experimented", {
                     shader_category: e,
                     seed,
                     action_type: "category_change",
@@ -247,7 +248,7 @@ export function UberPlayground() {
               onClick={() => {
                 const newSeed = Math.floor(Math.random() * 10000);
                 setSeed(newSeed);
-                pendo.track("shader_experimented", {
+                trackEvent("shader_experimented", {
                   shader_category: emotion,
                   seed: newSeed,
                   action_type: "randomize",
@@ -262,7 +263,7 @@ export function UberPlayground() {
               onClick={() => {
                 setSeed((s) => {
                   const newSeed = (s + 1) % 10000;
-                  pendo.track("shader_experimented", {
+                  trackEvent("shader_experimented", {
                     shader_category: emotion,
                     seed: newSeed,
                     action_type: "next",
@@ -279,7 +280,7 @@ export function UberPlayground() {
               onClick={() => {
                 setSeed((s) => {
                   const newSeed = (s + 9999) % 10000;
-                  pendo.track("shader_experimented", {
+                  trackEvent("shader_experimented", {
                     shader_category: emotion,
                     seed: newSeed,
                     action_type: "prev",

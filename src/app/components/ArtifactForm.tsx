@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from "motion/react";
 import { X } from "lucide-react";
 import { ROOMS } from "../data/rooms";
 import { generateArtifact, Artifact } from "../data/artifacts";
+import { trackEvent } from "../analytics";
 
 interface Props {
   defaultEmotion: string;
@@ -14,6 +15,14 @@ interface Props {
 
 // The message is shown on a small museum card, so it is intentionally short.
 const MESSAGE_MAX = 180;
+const GEN_STAGE_MS = 240;
+const GEN_FINAL_BREATH_MS = 80;
+
+let revealRoutePreload: Promise<unknown> | null = null;
+
+function preloadRevealRoute() {
+  revealRoutePreload ??= import("../pages/ArtifactReveal");
+}
 
 const getGenStages = (emotionName: string) => [
   `Listening to what you couldn't say…`,
@@ -32,6 +41,10 @@ export function ArtifactForm({ defaultEmotion, accentColor, roomImage, onClose, 
   const messageId = useId();
   const counterId = useId();
 
+  useEffect(() => {
+    preloadRevealRoute();
+  }, []);
+
   // Esc closes (when not mid-generation, to avoid orphaning a request).
   useEffect(() => {
     const previouslyFocused = document.activeElement as HTMLElement | null;
@@ -49,7 +62,7 @@ export function ArtifactForm({ defaultEmotion, accentColor, roomImage, onClose, 
     if (!message.trim()) return;
     setGenerating(true);
 
-    pendo.track("artifact_form_submitted", {
+    trackEvent("artifact_form_submitted", {
       emotion: defaultEmotion,
       message_length: message.trim().length,
       has_title: !!title.trim(),
@@ -60,13 +73,10 @@ export function ArtifactForm({ defaultEmotion, accentColor, roomImage, onClose, 
 
     const stages = getGenStages(room?.name?.toLowerCase() || defaultEmotion);
 
-    // Each stage holds for ~900ms so the visitor actually reads it. The text's
-    // own motion exit animation is 400ms, so a 900ms hold gives ~500ms of
-    // settled text before the next line starts swapping in. Total visible
-    // demo time: ~2.7s before the shader takes over on the reveal page.
+    // Keep the ritual visible without making creation feel network-bound.
     for (let i = 0; i < stages.length; i++) {
       setGenStage(i);
-      await new Promise((r) => setTimeout(r, 900));
+      await new Promise((r) => setTimeout(r, GEN_STAGE_MS));
     }
 
     const artifact = generateArtifact(
@@ -80,7 +90,7 @@ export function ArtifactForm({ defaultEmotion, accentColor, roomImage, onClose, 
     );
 
     // Brief breath after the last line so the dot doesn't vanish mid-fade.
-    await new Promise((r) => setTimeout(r, 300));
+    await new Promise((r) => setTimeout(r, GEN_FINAL_BREATH_MS));
     onArtifactGenerated(artifact);
   }
 

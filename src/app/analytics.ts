@@ -19,9 +19,9 @@ type PendoVisitor = {
 };
 
 type PendoApi = {
-  initialize: (opts: { visitor: PendoVisitor; account?: { id: string } }) => void;
-  pageLoad: (props?: { name?: string } & Record<string, unknown>) => void;
-  track: (event: string, properties?: Record<string, unknown>) => void;
+  initialize?: (opts: { visitor: PendoVisitor; account?: { id: string } }) => void;
+  pageLoad?: () => void;
+  track?: (event: string, properties?: Record<string, unknown>) => void;
 };
 
 declare global {
@@ -63,15 +63,29 @@ export function initAnalytics() {
   if (inited) return;
   inited = true;
   const { id, firstSeen } = readOrCreateVisitorId();
-  window.pendo?.initialize({
-    visitor: { id, first_seen: firstSeen },
-    account: { id: "unsent-museum" },
-  });
+  try {
+    window.pendo?.initialize?.({
+      visitor: { id, first_seen: firstSeen },
+      account: { id: "unsent-museum" },
+    });
+  } catch {
+    /* analytics must never block the app */
+  }
 }
 
 export function trackPage(name: string, props: Record<string, unknown> = {}) {
+  const search = typeof props.search === "string" ? props.search : "";
   try {
-    window.pendo?.pageLoad({ name, ...props });
+    window.pendo?.pageLoad?.();
+    window.pendo?.track?.("page_viewed", { path: name, search });
+  } catch {
+    /* analytics must never throw out of a render */
+  }
+}
+
+export function trackEvent(event: string, properties: Record<string, unknown> = {}) {
+  try {
+    window.pendo?.track?.(event, properties);
   } catch {
     /* analytics must never throw out of a render */
   }

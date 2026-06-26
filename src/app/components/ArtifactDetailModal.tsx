@@ -15,6 +15,7 @@ import { ShoutBehindGlassRender } from "./ShoutBehindGlassCard";
 import { SmokingSilhouetteRender } from "./SmokingSilhouetteCard";
 import { downloadArtifact } from "./downloadArtifact";
 import { decodeGenes, isUberShader } from "../data/uberGenes";
+import { trackEvent } from "../analytics";
 
 interface Props {
   artifact: Artifact;
@@ -60,7 +61,7 @@ export function ArtifactDetailModal({ artifact, onClose }: Props) {
       if (typeof navigator !== "undefined" && navigator.share) {
         await navigator.share({ title: `${artifact.title} · The Unsent Museum`, text: artifact.interpretation, url });
         shareMethod = "native_share";
-        pendo.track("artifact_shared", {
+        trackEvent("artifact_shared", {
           artifact_id: artifact.id,
           emotion: artifact.emotion,
           share_method: shareMethod,
@@ -75,7 +76,7 @@ export function ArtifactDetailModal({ artifact, onClose }: Props) {
       shareMethod = "clipboard_copy";
       setCopied(true);
       window.setTimeout(() => setCopied(false), 1800);
-      pendo.track("artifact_shared", {
+      trackEvent("artifact_shared", {
         artifact_id: artifact.id,
         emotion: artifact.emotion,
         share_method: shareMethod,
@@ -337,7 +338,7 @@ export function ArtifactDetailModal({ artifact, onClose }: Props) {
                 style={{ color: "rgba(255,255,255,0.72)" }}
                 aria-label="Report artifact"
                 onClick={() => {
-                  pendo.track("artifact_reported", {
+                  trackEvent("artifact_reported", {
                     artifact_id: artifact.id,
                     emotion: artifact.emotion,
                     artifact_title: artifact.title,

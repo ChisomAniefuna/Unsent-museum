@@ -1,5 +1,6 @@
 import { useSyncExternalStore } from "react";
 import { likeArtifact } from "./useArtifacts";
+import { trackEvent } from "../analytics";
 
 // A tiny shared like store. There is no auth, so "did I like this" is a per-browser
 // set kept in localStorage. Every surface (grid card, 3D carousel, detail modal,
@@ -54,7 +55,7 @@ export function toggleLike(id: string): boolean {
   persist();
   listeners.forEach((l) => l());
   const isLikeNow = !wasLiked;
-  pendo.track("artifact_liked", {
+  trackEvent("artifact_liked", {
     artifact_id: id,
     is_like: isLikeNow,
   });

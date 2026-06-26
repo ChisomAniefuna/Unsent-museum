@@ -16,6 +16,7 @@ import { HeadOnFireCard } from "../components/HeadOnFireCard";
 import { RewindingHandCard } from "../components/RewindingHandCard";
 import { ShoutBehindGlassCard } from "../components/ShoutBehindGlassCard";
 import { SmokingSilhouetteCard } from "../components/SmokingSilhouetteCard";
+import { trackEvent } from "../analytics";
 
 type SortMode = "newest" | "liked" | "shared";
 type ViewMode = "carousel" | "grid";
@@ -60,7 +61,7 @@ export function ArtifactGallery() {
     if (!search.trim()) return;
     if (searchTimerRef.current) window.clearTimeout(searchTimerRef.current);
     searchTimerRef.current = window.setTimeout(() => {
-      pendo.track("gallery_searched", {
+      trackEvent("gallery_searched", {
         query: search.trim().substring(0, 100),
         results_count: filtered.length,
         active_emotion_filter: activeEmotion,
@@ -73,7 +74,7 @@ export function ArtifactGallery() {
 
   const handleEmotionChange = useCallback((value: string) => {
     setActiveEmotion(value);
-    pendo.track("gallery_filtered", {
+    trackEvent("gallery_filtered", {
       emotion_filter: value,
       sort_mode: sort,
       view_mode: view,
@@ -82,7 +83,7 @@ export function ArtifactGallery() {
 
   const handleSortChange = useCallback((value: string) => {
     setSort(value as SortMode);
-    pendo.track("gallery_filtered", {
+    trackEvent("gallery_filtered", {
       emotion_filter: activeEmotion,
       sort_mode: value,
       view_mode: view,
@@ -181,7 +182,7 @@ export function ArtifactGallery() {
                   <button
                     onClick={() => {
                       const newView = is3D ? "grid" : "carousel";
-                      pendo.track("gallery_view_changed", {
+                      trackEvent("gallery_view_changed", {
                         new_view_mode: newView,
                         previous_view_mode: view,
                         artifact_count: filtered.length,

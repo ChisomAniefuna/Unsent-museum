@@ -41,7 +41,7 @@ create policy "Public artifacts are readable"
   using (visibility = 'public');
 
 -- Anyone can insert. (No auth, no profile - the museum is intentionally
--- anonymous.) The frontend generates a deterministic ID; the DB does not.
+-- anonymous.) The frontend generates the artifact ID; the DB does not.
 drop policy if exists "Anyone can submit an artifact" on public.artifacts;
 create policy "Anyone can submit an artifact"
   on public.artifacts
