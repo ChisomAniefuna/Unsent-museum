@@ -125,7 +125,7 @@ export function ArtifactGallery() {
     ? `Living relics of ${currentRoom.name.toLowerCase()}, emotions given form.`
     : "Living relics of unsent messages, emotions given form.";
 
-  function openMemoryForm(source: "gallery_cta" | "gallery_fab") {
+  function openMemoryForm(source: "gallery_top_right") {
     if (!currentRoom || formOpen) return;
     setFormOpen(true);
     trackEvent("open_memory_form", {
@@ -209,6 +209,30 @@ export function ArtifactGallery() {
         </svg>
       </motion.button>
 
+      {currentRoom && !selectedArtifact && (
+        <motion.button
+          whileHover={{ scale: 1.04 }}
+          whileTap={{ scale: 0.96 }}
+          onClick={() => openMemoryForm("gallery_top_right")}
+          disabled={formOpen}
+          className="fixed right-4 top-4 md:right-8 md:top-6 z-50 flex h-12 items-center gap-2 rounded-full px-4 text-xs uppercase tracking-[0.16em] transition-all"
+          style={{
+            background: formOpen ? "rgba(20,14,28,0.32)" : `${accentColor}2e`,
+            border: `1px solid ${accentColor}70`,
+            color: "rgba(255,255,255,0.92)",
+            boxShadow: `0 14px 34px ${accentColor}24`,
+            backdropFilter: "blur(10px)",
+            WebkitBackdropFilter: "blur(10px)",
+            opacity: formOpen ? 0.45 : 1,
+            pointerEvents: formOpen ? "none" : "auto",
+          }}
+          aria-label={`Enter memory in the Museum of ${currentRoom.name}`}
+        >
+          <Plus size={16} strokeWidth={2.4} />
+          <span>Enter Memory</span>
+        </motion.button>
+      )}
+
       {/* Header */}
       <div className="relative z-10 px-4 md:px-8 pt-20 md:pt-24 pb-6 max-w-7xl mx-auto">
         <motion.div
@@ -236,23 +260,6 @@ export function ArtifactGallery() {
 
             {/* Compact control cluster, top-right. Order: 3D Flow · Room · Sort · Search. */}
             <div className="flex flex-wrap items-center gap-2 md:justify-end">
-              {currentRoom && (
-                <button
-                  onClick={() => openMemoryForm("gallery_cta")}
-                  className="flex items-center gap-1.5 px-4 py-1.5 rounded-full text-[11px] transition-all"
-                  style={{
-                    background: accentColor + "30",
-                    border: `1px solid ${accentColor}66`,
-                    color: "rgba(255,255,255,0.95)",
-                    boxShadow: `0 10px 28px ${accentColor}20`,
-                  }}
-                  aria-label={`Enter memory in the Museum of ${currentRoom.name}`}
-                >
-                  <Plus size={13} strokeWidth={2.4} />
-                  Enter Memory
-                </button>
-              )}
-
               {/* 1 · 3D Flow ⇄ Grid, single click-to-toggle; 3D is the lit (accent) state. */}
               {(() => {
                 const is3D = view === "carousel";
@@ -399,26 +406,6 @@ export function ArtifactGallery() {
           />
         )}
       </AnimatePresence>
-
-      {currentRoom && !selectedArtifact && (
-        <motion.button
-          initial={{ opacity: 0, scale: 0.86, y: 8 }}
-          animate={{ opacity: formOpen ? 0 : 1, scale: formOpen ? 0.86 : 1, y: 0 }}
-          transition={{ duration: 0.24, ease: [0.25, 0.1, 0.25, 1] }}
-          onClick={() => openMemoryForm("gallery_fab")}
-          disabled={formOpen}
-          className="fixed bottom-6 right-6 z-40 flex h-14 w-14 items-center justify-center rounded-full text-white shadow-2xl md:hidden"
-          style={{
-            background: `${accentColor}dd`,
-            border: "1px solid rgba(255,255,255,0.48)",
-            boxShadow: `0 16px 36px ${accentColor}3d, inset 0 1px 0 rgba(255,255,255,0.48)`,
-            pointerEvents: formOpen ? "none" : "auto",
-          }}
-          aria-label={`Enter memory in the Museum of ${currentRoom.name}`}
-        >
-          <Plus size={24} strokeWidth={2.5} />
-        </motion.button>
-      )}
 
       <AnimatePresence>
         {formOpen && currentRoom && (
