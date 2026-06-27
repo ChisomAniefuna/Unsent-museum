@@ -32,6 +32,7 @@ export function ArtifactForm({ defaultEmotion, accentColor, roomImage, onClose, 
   const [isAnonymous, setIsAnonymous] = useState(false);
   const [generating, setGenerating] = useState(false);
   const [genStage, setGenStage] = useState(0);
+  const [messageFocused, setMessageFocused] = useState(false);
   const messageRef = useRef<HTMLTextAreaElement>(null);
   const titleId = useId();
   const messageId = useId();
@@ -202,7 +203,6 @@ export function ArtifactForm({ defaultEmotion, accentColor, roomImage, onClose, 
               value={title}
               onChange={setTitle}
               placeholder="e.g. The Last Train Home"
-              accentColor={accentColor}
             />
 
             <div>
@@ -228,16 +228,22 @@ export function ArtifactForm({ defaultEmotion, accentColor, roomImage, onClose, 
                 aria-describedby={counterId}
                 value={message}
                 onChange={(e) => setMessage(e.target.value.slice(0, MESSAGE_MAX))}
+                onFocus={() => setMessageFocused(true)}
+                onBlur={() => setMessageFocused(false)}
                 maxLength={MESSAGE_MAX}
                 placeholder="I never told you that…"
                 rows={5}
-                className="w-full resize-none rounded-xl p-4 text-sm transition-all"
+                className="w-full resize-none rounded-xl p-4 text-sm transition-all outline-none"
                 style={{
                   background: "rgba(255,255,255,0.11)",
                   backdropFilter: "blur(16px) saturate(160%)",
                   WebkitBackdropFilter: "blur(16px) saturate(160%)",
-                  border: `1.5px solid ${message ? accentColor + "88" : "rgba(255,255,255,0.32)"}`,
-                  boxShadow: "inset 0 1px 0 rgba(255,255,255,0.24)",
+                  outline: "none",
+                  appearance: "none",
+                  border: `1.5px solid ${messageFocused ? "rgba(255,255,255,0.72)" : message ? "rgba(255,255,255,0.48)" : "rgba(255,255,255,0.32)"}`,
+                  boxShadow: messageFocused
+                    ? "0 0 0 2px rgba(255,255,255,0.24), inset 0 1px 0 rgba(255,255,255,0.28)"
+                    : "inset 0 1px 0 rgba(255,255,255,0.24)",
                   color: "rgba(255,255,255,0.9)",
                   fontFamily: "'Cormorant Garamond', serif",
                   fontSize: "1rem",
@@ -254,7 +260,6 @@ export function ArtifactForm({ defaultEmotion, accentColor, roomImage, onClose, 
                     value={displayName}
                     onChange={setDisplayName}
                     placeholder="Your name"
-                    accentColor={accentColor}
                   />
                 )}
               </div>
@@ -308,11 +313,12 @@ export function ArtifactForm({ defaultEmotion, accentColor, roomImage, onClose, 
 }
 
 function FormInput({
-  label, value, onChange, placeholder, accentColor,
+  label, value, onChange, placeholder,
 }: {
-  label: string; value: string; onChange: (v: string) => void; placeholder: string; accentColor: string;
+  label: string; value: string; onChange: (v: string) => void; placeholder: string;
 }) {
   const inputId = useId();
+  const [focused, setFocused] = useState(false);
   return (
     <div>
       <label htmlFor={inputId} className="block text-[10px] tracking-[0.2em] uppercase mb-2 font-semibold" style={{ color: "rgba(255,255,255,0.92)" }}>
@@ -323,14 +329,20 @@ function FormInput({
         type="text"
         value={value}
         onChange={(e) => onChange(e.target.value)}
+        onFocus={() => setFocused(true)}
+        onBlur={() => setFocused(false)}
         placeholder={placeholder}
-        className="w-full rounded-lg px-4 py-2.5 text-sm transition-all"
+        className="w-full rounded-lg px-4 py-2.5 text-sm transition-all outline-none"
         style={{
           background: "rgba(255,255,255,0.11)",
           backdropFilter: "blur(16px) saturate(160%)",
           WebkitBackdropFilter: "blur(16px) saturate(160%)",
-          border: `1.5px solid ${value ? accentColor + "88" : "rgba(255,255,255,0.32)"}`,
-          boxShadow: "inset 0 1px 0 rgba(255,255,255,0.24)",
+          outline: "none",
+          appearance: "none",
+          border: `1.5px solid ${focused ? "rgba(255,255,255,0.72)" : value ? "rgba(255,255,255,0.48)" : "rgba(255,255,255,0.32)"}`,
+          boxShadow: focused
+            ? "0 0 0 2px rgba(255,255,255,0.24), inset 0 1px 0 rgba(255,255,255,0.28)"
+            : "inset 0 1px 0 rgba(255,255,255,0.24)",
           color: "rgba(255,255,255,0.9)",
         }}
       />
