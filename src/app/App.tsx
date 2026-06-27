@@ -4,6 +4,7 @@ import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-route
 import { MotionConfig } from "motion/react";
 import { LandingPage } from "./pages/LandingPage";
 import { trackEvent, trackPage } from "./analytics";
+import { preloadCoreRoutes, preloadGalleryRoute, preloadRevealRoute, preloadRoomRoute } from "./routePreloads";
 
 // Landing is eager so first paint isn't gated on a chunk fetch. Everything
 // else is split off the main bundle and only loaded when its route is hit.
@@ -25,9 +26,9 @@ function lazyRoute<T extends { default: React.ComponentType<any> }>(load: () => 
   });
 }
 
-const EmotionRoom = lazyRoute(() => import("./pages/EmotionRoom").then(m => ({ default: m.EmotionRoom })));
-const ArtifactGallery = lazyRoute(() => import("./pages/ArtifactGallery").then(m => ({ default: m.ArtifactGallery })));
-const ArtifactReveal = lazyRoute(() => import("./pages/ArtifactReveal").then(m => ({ default: m.ArtifactReveal })));
+const EmotionRoom = lazyRoute(() => preloadRoomRoute().then(m => ({ default: (m as typeof import("./pages/EmotionRoom")).EmotionRoom })));
+const ArtifactGallery = lazyRoute(() => preloadGalleryRoute().then(m => ({ default: (m as typeof import("./pages/ArtifactGallery")).ArtifactGallery })));
+const ArtifactReveal = lazyRoute(() => preloadRevealRoute().then(m => ({ default: (m as typeof import("./pages/ArtifactReveal")).ArtifactReveal })));
 const CryingMaskExhibit = lazyRoute(() => import("./components/CryingMaskExhibit").then(m => ({ default: m.CryingMaskExhibit })));
 const UberPlayground = lazyRoute(() => import("./pages/UberPlayground").then(m => ({ default: m.UberPlayground })));
 
@@ -80,15 +81,7 @@ class RouteErrorBoundary extends Component<{ children: ReactNode }, { error: Err
 }
 
 function RouteFallback() {
-  return (
-    <div
-      className="flex h-full w-full items-center justify-center bg-[#04030a] font-['Cinzel'] text-[11px] font-semibold uppercase tracking-[0.26em] text-white/55"
-      role="status"
-      aria-live="polite"
-    >
-      Opening
-    </div>
-  );
+  return null;
 }
 
 // Pendo's auto pageLoad only fires on hard navigations. This component watches
@@ -106,6 +99,9 @@ function RouteTracker() {
 
 function RoutedApp() {
   const location = useLocation();
+  useEffect(() => {
+    preloadCoreRoutes();
+  }, []);
   return (
     <>
       <RouteTracker />

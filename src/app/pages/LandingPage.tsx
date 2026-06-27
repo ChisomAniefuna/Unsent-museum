@@ -7,16 +7,11 @@ import { EmotionDoor } from "../components/EmotionDoor";
 import { warmDoorImages } from "../components/EmotionDoorImage";
 import { LandingMuseumBackground } from "../components/LandingMuseumBackground";
 import { trackEvent } from "../analytics";
+import { preloadGalleryRoute, preloadRoomRoute } from "../routePreloads";
 
 const MOBILE_LOOP_ROOMS = [ROOMS[ROOMS.length - 1], ...ROOMS, ROOMS[0]];
 
 warmDoorImages();
-
-let roomRoutePreload: Promise<unknown> | null = null;
-
-function preloadRoomRoute() {
-  roomRoutePreload ??= import("./EmotionRoom");
-}
 
 // Render ONLY the layout that matches the viewport instead of mounting both the
 // desktop grid AND the mobile carousel and hiding one with CSS. A hidden-but-
@@ -176,7 +171,13 @@ export function LandingPage() {
         {/* Liquid-Glass entry to the artifact gallery, top-right */}
         <button
           type="button"
-          onClick={() => navigate("/gallery")}
+          onPointerEnter={preloadGalleryRoute}
+          onPointerDown={preloadGalleryRoute}
+          onFocus={preloadGalleryRoute}
+          onClick={() => {
+            preloadGalleryRoute();
+            navigate("/gallery");
+          }}
           aria-label="Explore the artifact gallery"
           className="group/col absolute right-4 top-4 md:right-8 md:top-6 z-30 inline-flex items-center gap-2 rounded-full p-3 sm:px-5 sm:py-2.5 font-['Cinzel'] text-[11px] font-semibold uppercase tracking-[0.22em] text-[#3a2c20] transition-all duration-300 hover:-translate-y-0.5 focus-visible:ring-2 focus-visible:ring-black/25 outline-none"
           style={{

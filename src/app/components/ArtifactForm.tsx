@@ -4,6 +4,7 @@ import { X } from "lucide-react";
 import { ROOMS } from "../data/rooms";
 import { generateArtifact, Artifact } from "../data/artifacts";
 import { trackEvent } from "../analytics";
+import { preloadRevealRoute } from "../routePreloads";
 
 interface Props {
   defaultEmotion: string;
@@ -17,12 +18,6 @@ interface Props {
 const MESSAGE_MAX = 180;
 const GEN_STAGE_MS = 240;
 const GEN_FINAL_BREATH_MS = 80;
-
-let revealRoutePreload: Promise<unknown> | null = null;
-
-function preloadRevealRoute() {
-  revealRoutePreload ??= import("../pages/ArtifactReveal");
-}
 
 const getGenStages = (emotionName: string) => [
   `Listening to what you couldn't say…`,
