@@ -18,6 +18,7 @@ import { ShoutBehindGlassCard } from "../components/ShoutBehindGlassCard";
 import { SmokingSilhouetteCard } from "../components/SmokingSilhouetteCard";
 import { ArtifactForm } from "../components/ArtifactForm";
 import { trackEvent } from "../analytics";
+import { useLiquidGlass } from "../hooks/useLiquidGlass";
 
 type SortMode = "newest" | "liked" | "shared";
 type ViewMode = "carousel" | "grid";
@@ -49,6 +50,7 @@ export function ArtifactGallery() {
   const [search, setSearch] = useState("");
   const [selectedArtifact, setSelectedArtifact] = useState<Artifact | null>(null);
   const [formOpen, setFormOpen] = useState(false);
+  const glassRootRef = useRef<HTMLDivElement>(null);
   const { artifacts } = useArtifacts();
 
   // Keep the active room in sync with the URL (/gallery/:emotion), including when
@@ -181,8 +183,11 @@ export function ArtifactGallery() {
       });
   }
 
+  useLiquidGlass(glassRootRef, [currentRoom?.id]);
+
   return (
     <div
+      ref={glassRootRef}
       className="relative w-full min-h-full"
       style={{ background: "linear-gradient(180deg, #06040a 0%, #040308 100%)" }}
     >
@@ -191,15 +196,15 @@ export function ArtifactGallery() {
         whileHover={{ scale: 1.05 }}
         whileTap={{ scale: 0.95 }}
         onClick={() => navigate("/")}
-        className="fixed left-4 top-4 md:left-8 md:top-6 z-50 flex items-center justify-center rounded-full transition-all"
+        className="glass fixed left-4 top-4 md:left-8 md:top-6 z-50 flex items-center justify-center rounded-full transition-all"
         style={{
           width: 48,
           height: 48,
-          background: "rgba(20,14,28,0.55)",
-          border: "1px solid rgba(255,255,255,0.14)",
-          color: "rgba(255,255,255,0.8)",
-          backdropFilter: "blur(10px)",
-          WebkitBackdropFilter: "blur(10px)",
+          background: "rgba(255,255,255,0.08)",
+          border: "1px solid rgba(255,255,255,0.24)",
+          color: "rgba(255,255,255,0.88)",
+          backdropFilter: "blur(8px)",
+          WebkitBackdropFilter: "blur(8px)",
         }}
         aria-label="Back to Museum"
       >
@@ -215,14 +220,14 @@ export function ArtifactGallery() {
           whileTap={{ scale: 0.96 }}
           onClick={() => openMemoryForm("gallery_top_right")}
           disabled={formOpen}
-          className="fixed right-4 top-4 md:right-8 md:top-6 z-50 flex h-12 items-center gap-2 rounded-full px-4 text-xs uppercase tracking-[0.16em] transition-all"
+          className="glass fixed right-4 top-4 md:right-8 md:top-6 z-50 flex h-12 items-center gap-2 rounded-full px-4 text-xs uppercase tracking-[0.16em] transition-all"
           style={{
-            background: formOpen ? "rgba(20,14,28,0.32)" : `${accentColor}2e`,
-            border: `1px solid ${accentColor}70`,
+            background: formOpen ? "rgba(255,255,255,0.06)" : "rgba(255,255,255,0.08)",
+            border: `1px solid ${accentColor}58`,
             color: "rgba(255,255,255,0.92)",
-            boxShadow: `0 14px 34px ${accentColor}24`,
-            backdropFilter: "blur(10px)",
-            WebkitBackdropFilter: "blur(10px)",
+            boxShadow: `0 14px 34px ${accentColor}18`,
+            backdropFilter: "blur(8px)",
+            WebkitBackdropFilter: "blur(8px)",
             opacity: formOpen ? 0.45 : 1,
             pointerEvents: formOpen ? "none" : "auto",
           }}

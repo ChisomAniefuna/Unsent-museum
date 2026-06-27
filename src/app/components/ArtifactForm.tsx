@@ -1,4 +1,4 @@
-import { useEffect, useId, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { X } from "lucide-react";
 import { ROOMS } from "../data/rooms";
@@ -32,12 +32,19 @@ export function ArtifactForm({ defaultEmotion, accentColor, roomImage, onClose, 
   const [isAnonymous, setIsAnonymous] = useState(false);
   const [generating, setGenerating] = useState(false);
   const [genStage, setGenStage] = useState(0);
+  const messageRef = useRef<HTMLTextAreaElement>(null);
   const titleId = useId();
   const messageId = useId();
   const counterId = useId();
+  const canGenerate = message.trim().length > 0 && !generating;
 
   useEffect(() => {
     preloadRevealRoute();
+  }, []);
+
+  useEffect(() => {
+    const id = window.setTimeout(() => messageRef.current?.focus(), 80);
+    return () => window.clearTimeout(id);
   }, []);
 
   // Esc closes (when not mid-generation, to avoid orphaning a request).
@@ -171,6 +178,7 @@ export function ArtifactForm({ defaultEmotion, accentColor, roomImage, onClose, 
           </div>
           {!generating && (
             <button
+              type="button"
               onClick={onClose}
               aria-label="Close form"
               className="flex items-center justify-center rounded-full transition-all hover:bg-white/10"
@@ -215,6 +223,7 @@ export function ArtifactForm({ defaultEmotion, accentColor, roomImage, onClose, 
                 </span>
               </div>
               <textarea
+                ref={messageRef}
                 id={messageId}
                 aria-describedby={counterId}
                 value={message}
@@ -249,39 +258,42 @@ export function ArtifactForm({ defaultEmotion, accentColor, roomImage, onClose, 
                   />
                 )}
               </div>
-              <label className="flex items-center gap-2 cursor-pointer shrink-0 pb-3">
+              <button
+                type="button"
+                aria-pressed={isAnonymous}
+                aria-label="Toggle anonymous artifact"
+                className="flex items-center gap-2 cursor-pointer shrink-0 pb-3"
+                onClick={() => setIsAnonymous((v) => !v)}
+              >
                 <span className="text-[10px] uppercase tracking-widest" style={{ color: "rgba(255,255,255,0.92)" }}>Anonymous</span>
-                <button
-                  type="button"
-                  aria-pressed={isAnonymous}
-                  aria-label="Toggle anonymous artifact"
+                <span
                   className="relative w-8 h-4 rounded-full transition-colors"
                   style={{ background: isAnonymous ? accentColor : "rgba(255,255,255,0.15)" }}
-                  onClick={() => setIsAnonymous(!isAnonymous)}
                 >
                   <span
                     className="absolute top-0.5 w-3 h-3 rounded-full bg-white shadow transition-transform"
                     style={{ left: 0, transform: isAnonymous ? "translateX(17px)" : "translateX(2px)" }}
                   />
-                </button>
-              </label>
+                </span>
+              </button>
             </div>
           </div>
 
           {/* Footer Area */}
           <div className="mt-6 pt-5 border-t border-white/5 flex justify-end">
             <motion.button
-              whileHover={message ? { scale: 1.02 } : {}}
-              whileTap={message ? { scale: 0.98 } : {}}
+              type="button"
+              whileHover={canGenerate ? { scale: 1.02 } : {}}
+              whileTap={canGenerate ? { scale: 0.98 } : {}}
               onClick={handleGenerate}
-              disabled={!message.trim() || generating}
+              disabled={!canGenerate}
               className="px-6 py-2.5 rounded-full text-[10px] tracking-[0.2em] uppercase transition-all whitespace-nowrap"
               style={{
-                background: message ? "rgba(255,255,255,0.92)" : "rgba(255,255,255,0.11)",
-                color: message ? "#111827" : "rgba(255,255,255,0.62)",
-                border: `1.5px solid ${message ? "rgba(255,255,255,0.95)" : "rgba(255,255,255,0.22)"}`,
-                boxShadow: message ? "0px 12px 30px rgba(0,0,0,0.28), inset 0 1px 0 rgba(255,255,255,0.75)" : "none",
-                cursor: message ? "pointer" : "not-allowed",
+                background: canGenerate ? "rgba(255,255,255,0.92)" : "rgba(255,255,255,0.11)",
+                color: canGenerate ? "#111827" : "rgba(255,255,255,0.62)",
+                border: `1.5px solid ${canGenerate ? "rgba(255,255,255,0.95)" : "rgba(255,255,255,0.22)"}`,
+                boxShadow: canGenerate ? "0px 12px 30px rgba(0,0,0,0.28), inset 0 1px 0 rgba(255,255,255,0.75)" : "none",
+                cursor: canGenerate ? "pointer" : "not-allowed",
                 fontFamily: "'Cinzel', serif",
                 fontWeight: 700
               }}
