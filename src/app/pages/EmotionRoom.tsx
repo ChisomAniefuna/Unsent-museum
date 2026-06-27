@@ -21,9 +21,6 @@ export function EmotionRoom() {
   // Track which room's video is playing, automatically false when room changes, no async reset needed.
   const [playingRoomId, setPlayingRoomId] = useState<string | null>(null);
   const [errorRoomId, setErrorRoomId] = useState<string | null>(null);
-  const autoOpenedRoomRef = useRef<string | null>(null);
-  const formOpenRef = useRef(false);
-  const leavingRoomRef = useRef(false);
 
   const room = ROOM_MAP[emotion || "grief"];
   const videoPlaying = playingRoomId === room?.id;
@@ -33,33 +30,15 @@ export function EmotionRoom() {
     if (!room) navigate("/");
   }, [room]);
 
-  useEffect(() => {
-    formOpenRef.current = formOpen;
-  }, [formOpen]);
-
-  useEffect(() => {
-    leavingRoomRef.current = leavingRoom;
-  }, [leavingRoom]);
-
-  function openMemoryForm(source: "auto" | "cta") {
-    if (!room || formOpenRef.current || generating || leavingRoomRef.current) return;
-    formOpenRef.current = true;
+  function openMemoryForm() {
+    if (!room || formOpen || generating || leavingRoom) return;
     setFormOpen(true);
     trackEvent("open_memory_form", {
       emotion: room.id,
       room_name: room.name,
-      source,
+      source: "cta",
     });
   }
-
-  useEffect(() => {
-    if (!room || autoOpenedRoomRef.current === room.id) return;
-    const t = window.setTimeout(() => {
-      openMemoryForm("auto");
-      autoOpenedRoomRef.current = room.id;
-    }, 850);
-    return () => window.clearTimeout(t);
-  }, [room?.id]);
 
   // Aggressively start video playback, resilient to poor networks
   useEffect(() => {
@@ -282,7 +261,7 @@ export function EmotionRoom() {
               <motion.button
                 whileHover={{ scale: 1.03 }}
                 whileTap={{ scale: 0.97 }}
-                onClick={() => openMemoryForm("cta")}
+                onClick={openMemoryForm}
                 className="relative flex-shrink-0"
                 style={{
                   height: 48,

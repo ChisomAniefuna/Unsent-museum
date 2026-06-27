@@ -225,6 +225,7 @@ export function LandingPage() {
                 isHovered={hoveredRoom === room.id}
                 isOpening={openingRoom === room.id}
                 isReturning={closingDoor === room.id}
+                isReturnLocked={!!closingDoor && closingDoor !== room.id}
                 onHover={(v) => handleDoorHover(room.id, v)}
                 onClick={() => handleDoorClick(room)}
               />
@@ -261,6 +262,7 @@ export function LandingPage() {
                   isHovered={hoveredRoom === room.id}
                   isOpening={openingRoom === room.id}
                   isReturning={i === closingMobileLoopIndex}
+                  isReturnLocked={!!closingDoor && i !== closingMobileLoopIndex}
                   onHover={(v) => handleDoorHover(room.id, v)}
                   onClick={() => handleDoorClick(room)}
                 />

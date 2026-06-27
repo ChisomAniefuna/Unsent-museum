@@ -16,11 +16,12 @@ interface DoorProps {
   isHovered: boolean;
   isOpening: boolean;
   isReturning?: boolean;
+  isReturnLocked?: boolean;
   onHover: (v: boolean) => void;
   onClick: () => void;
 }
 
-export function EmotionDoor({ room, isHovered, isOpening, isReturning = false, onHover, onClick }: DoorProps) {
+export function EmotionDoor({ room, isHovered, isOpening, isReturning = false, isReturnLocked = false, onHover, onClick }: DoorProps) {
   const [returnClosing, setReturnClosing] = useState(isReturning);
 
   useEffect(() => {
@@ -34,6 +35,7 @@ export function EmotionDoor({ room, isHovered, isOpening, isReturning = false, o
     return () => window.clearTimeout(t);
   }, [isReturning]);
 
+  const interactive = !isReturnLocked;
   const active = isHovered || isOpening || returnClosing;
   const hideClosedDoor = isHovered || isOpening || returnClosing;
   const leftAngle = isOpening ? -76 : isHovered ? -10 : 0;
@@ -67,12 +69,13 @@ export function EmotionDoor({ room, isHovered, isOpening, isReturning = false, o
   return (
     <button
       type="button"
-      onMouseEnter={() => { onHover(true); startPreload(); }}
-      onMouseLeave={() => { onHover(false); stopPreload(); }}
-      onTouchStart={() => { onHover(true); startPreload(); }}
-      onTouchEnd={() => onHover(false)}
-      onClick={onClick}
-      className="group block w-full cursor-pointer select-none transition-transform duration-300 hover:-translate-y-1"
+      onMouseEnter={() => { if (interactive) { onHover(true); startPreload(); } }}
+      onMouseLeave={() => { if (interactive) { onHover(false); stopPreload(); } }}
+      onTouchStart={() => { if (interactive) { onHover(true); startPreload(); } }}
+      onTouchEnd={() => { if (interactive) onHover(false); }}
+      onClick={() => { if (interactive) onClick(); }}
+      aria-disabled={!interactive}
+      className={`${interactive ? "group cursor-pointer hover:-translate-y-1" : "cursor-default"} block w-full select-none transition-transform duration-300`}
       aria-label={`Enter ${room.name}`}
     >
       {/* aspect-ratio reserves the door's exact height on first paint (all door
