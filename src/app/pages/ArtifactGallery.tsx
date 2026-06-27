@@ -1,14 +1,14 @@
 import { useState, useMemo, useEffect, useRef, useCallback } from "react";
 import { useNavigate, useParams } from "react-router";
 import { motion, AnimatePresence } from "motion/react";
-import { Search, LayoutGrid, GalleryHorizontalEnd, ChevronDown } from "lucide-react";
+import { Search, LayoutGrid, GalleryHorizontalEnd, ChevronDown, Plus } from "lucide-react";
 import Masonry, { ResponsiveMasonry } from "react-responsive-masonry";
 import { ROOMS } from "../data/rooms";
 import { Artifact } from "../data/artifacts";
 import { ShaderArtifactCard } from "../components/ShaderArtifactCard";
 import { ShaderCarousel3D } from "../components/ShaderCarousel3D";
 import { ArtifactDetailModal } from "../components/ArtifactDetailModal";
-import { useArtifacts } from "../hooks/useArtifacts";
+import { addCreatedArtifact, saveArtifact, useArtifacts } from "../hooks/useArtifacts";
 import { CryingMaskCard } from "../components/CryingMaskCard";
 import { SadnessHeadsCard } from "../components/SadnessHeadsCard";
 import { ScratchApparitionCard } from "../components/ScratchApparitionCard";
@@ -16,6 +16,7 @@ import { HeadOnFireCard } from "../components/HeadOnFireCard";
 import { RewindingHandCard } from "../components/RewindingHandCard";
 import { ShoutBehindGlassCard } from "../components/ShoutBehindGlassCard";
 import { SmokingSilhouetteCard } from "../components/SmokingSilhouetteCard";
+import { ArtifactForm } from "../components/ArtifactForm";
 import { trackEvent } from "../analytics";
 
 type SortMode = "newest" | "liked" | "shared";
@@ -47,6 +48,7 @@ export function ArtifactGallery() {
   const [view, setView] = useState<ViewMode>("carousel");
   const [search, setSearch] = useState("");
   const [selectedArtifact, setSelectedArtifact] = useState<Artifact | null>(null);
+  const [formOpen, setFormOpen] = useState(false);
   const { artifacts } = useArtifacts();
 
   // Keep the active room in sync with the URL (/gallery/:emotion), including when
@@ -123,6 +125,62 @@ export function ArtifactGallery() {
     ? `Living relics of ${currentRoom.name.toLowerCase()}, emotions given form.`
     : "Living relics of unsent messages, emotions given form.";
 
+  function openMemoryForm(source: "gallery_cta" | "gallery_fab") {
+    if (!currentRoom || formOpen) return;
+    setFormOpen(true);
+    trackEvent("open_memory_form", {
+      emotion: currentRoom.id,
+      room_name: currentRoom.name,
+      source,
+    });
+  }
+
+  function handleArtifactGenerated(artifact: Artifact) {
+    addCreatedArtifact(artifact);
+    setFormOpen(false);
+    navigate(`/reveal/${artifact.id}`, { state: { artifact } });
+
+    saveArtifact(artifact)
+      .then((saved) => {
+        addCreatedArtifact(saved);
+        trackEvent("artifact_created", {
+          emotion: saved.emotion,
+          message_length: saved.messageExcerpt?.length || 0,
+          has_title: !!saved.title,
+          is_anonymous: saved.isAnonymous,
+          visibility: saved.visibility,
+          message_visibility: saved.messageVisibility,
+          shader_index: saved.dna.shaderIndex,
+          seed: saved.dna.seed,
+          artifact_id: saved.id,
+          save_success: true,
+          source: "gallery",
+        });
+      })
+      .catch((err) => {
+        console.error("Failed to save artifact:", err);
+        trackEvent("artifact_save_failed", {
+          artifact_id: artifact.id,
+          emotion: artifact.emotion,
+          error_message: String(err instanceof Error ? err.message : err).substring(0, 100),
+          source: "gallery",
+        });
+        trackEvent("artifact_created", {
+          emotion: artifact.emotion,
+          message_length: artifact.messageExcerpt?.length || 0,
+          has_title: !!artifact.title,
+          is_anonymous: artifact.isAnonymous,
+          visibility: artifact.visibility,
+          message_visibility: artifact.messageVisibility,
+          shader_index: artifact.dna.shaderIndex,
+          seed: artifact.dna.seed,
+          artifact_id: artifact.id,
+          save_success: false,
+          source: "gallery",
+        });
+      });
+  }
+
   return (
     <div
       className="relative w-full min-h-full"
@@ -178,6 +236,23 @@ export function ArtifactGallery() {
 
             {/* Compact control cluster, top-right. Order: 3D Flow · Room · Sort · Search. */}
             <div className="flex flex-wrap items-center gap-2 md:justify-end">
+              {currentRoom && (
+                <button
+                  onClick={() => openMemoryForm("gallery_cta")}
+                  className="flex items-center gap-1.5 px-4 py-1.5 rounded-full text-[11px] transition-all"
+                  style={{
+                    background: accentColor + "30",
+                    border: `1px solid ${accentColor}66`,
+                    color: "rgba(255,255,255,0.95)",
+                    boxShadow: `0 10px 28px ${accentColor}20`,
+                  }}
+                  aria-label={`Enter memory in the Museum of ${currentRoom.name}`}
+                >
+                  <Plus size={13} strokeWidth={2.4} />
+                  Enter Memory
+                </button>
+              )}
+
               {/* 1 · 3D Flow ⇄ Grid, single click-to-toggle; 3D is the lit (accent) state. */}
               {(() => {
                 const is3D = view === "carousel";
@@ -321,6 +396,38 @@ export function ArtifactGallery() {
           <ArtifactDetailModal
             artifact={selectedArtifact}
             onClose={() => setSelectedArtifact(null)}
+          />
+        )}
+      </AnimatePresence>
+
+      {currentRoom && !selectedArtifact && (
+        <motion.button
+          initial={{ opacity: 0, scale: 0.86, y: 8 }}
+          animate={{ opacity: formOpen ? 0 : 1, scale: formOpen ? 0.86 : 1, y: 0 }}
+          transition={{ duration: 0.24, ease: [0.25, 0.1, 0.25, 1] }}
+          onClick={() => openMemoryForm("gallery_fab")}
+          disabled={formOpen}
+          className="fixed bottom-6 right-6 z-40 flex h-14 w-14 items-center justify-center rounded-full text-white shadow-2xl md:hidden"
+          style={{
+            background: `${accentColor}dd`,
+            border: "1px solid rgba(255,255,255,0.48)",
+            boxShadow: `0 16px 36px ${accentColor}3d, inset 0 1px 0 rgba(255,255,255,0.48)`,
+            pointerEvents: formOpen ? "none" : "auto",
+          }}
+          aria-label={`Enter memory in the Museum of ${currentRoom.name}`}
+        >
+          <Plus size={24} strokeWidth={2.5} />
+        </motion.button>
+      )}
+
+      <AnimatePresence>
+        {formOpen && currentRoom && (
+          <ArtifactForm
+            defaultEmotion={currentRoom.id}
+            accentColor={currentRoom.palette.glow}
+            roomImage={currentRoom.fallbackImage}
+            onClose={() => setFormOpen(false)}
+            onArtifactGenerated={handleArtifactGenerated}
           />
         )}
       </AnimatePresence>
