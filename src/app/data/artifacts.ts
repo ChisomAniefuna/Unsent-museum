@@ -1982,7 +1982,7 @@ const SEED_IDS = new Set([
   "mock-uber-hope",      // "Light Found a Way Through"      (hope-uber, rays smoke)
   "mock-uber-paisley",   // "What I Carry Forward"           (hope-paisley-fan)
   // Regret (5 + 6 uber/custom)
-  "mock-mask",   // "The Face We Wore" (crying mask)
+  "mock-mask",   // "The Face We Wore" (crying mask) — leads the Regret room
   "mock-heads",  // "Five Ways of Grieving" (sadness heads)
   "mock-scratch",// "I Scratched Myself Out of Every Photo" (scratch apparition)
   "mock-headfire", // "My Head Was Always on Fire" (head on fire)

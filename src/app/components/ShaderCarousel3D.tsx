@@ -41,10 +41,17 @@ export function ShaderCarousel3D({ artifacts, accentColor, onSelect, showTags }:
   useEffect(() => {
     // Cards are square (shaderH = cardW), so bound by BOTH axes: width keeps the
     // ribbon from crowding edge-to-edge, height keeps a square card from
-    // overflowing a short window. Cap at 460 so it scales up nicely on large
-    // desktops (was hard-capped at 360, which left the hero card tiny on 1440+).
-    const measure = () =>
-      setCardW(Math.max(240, Math.min(window.innerWidth * 0.62, window.innerHeight * 0.55, 460)));
+    // overflowing a short window. Desktop (>=1024px) gets a wider hero card and a
+    // taller height budget so it can actually grow; mobile keeps the tighter fit.
+    const measure = () => {
+      const vw = window.innerWidth;
+      const vh = window.innerHeight;
+      const isDesktop = vw >= 1024;
+      const widthFrac = isDesktop ? 0.7 : 0.62;
+      const heightFrac = isDesktop ? 0.62 : 0.55;
+      const cap = isDesktop ? 560 : 460;
+      setCardW(Math.max(240, Math.min(vw * widthFrac, vh * heightFrac, cap)));
+    };
     measure();
     window.addEventListener("resize", measure);
     return () => window.removeEventListener("resize", measure);

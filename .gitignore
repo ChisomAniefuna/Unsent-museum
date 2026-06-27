@@ -32,3 +32,5 @@ yarn-error.log*
 
 # Claude / local agent state
 .claude/settings.local.json
+.vercel
+.env*

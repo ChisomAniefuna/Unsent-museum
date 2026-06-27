@@ -110,17 +110,23 @@ export function ArtifactGallery() {
     else if (sort === "shared") items = [...items].sort((a, b) => b.shares - a.shares);
     else items = [...items].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
     const ordered = deClumpByShader(items);
-    // Editorial pin: in the Regret room, surface the mask + heads canvas pieces first
-    // so they always land in the opening five (they draw the most attention).
+    // Editorial pin: in the Regret room, surface the canvas pieces first so they always
+    // land in the opening five (they draw the most attention), with the mask ("The Face
+    // We Wore") leading the room.
     if (activeEmotion === "regret") {
       const special = ordered.filter((a) => a.custom);
-      if (special.length) return [...special, ...ordered.filter((a) => !a.custom)];
+      if (special.length) {
+        special.sort((a, b) => (a.id === "mock-mask" ? -1 : b.id === "mock-mask" ? 1 : 0));
+        return [...special, ...ordered.filter((a) => !a.custom)];
+      }
     }
     return ordered;
   }, [artifacts, activeEmotion, sort, search]);
 
   const currentRoom = activeEmotion !== "all" ? ROOMS.find((r) => r.id === activeEmotion) : null;
   const accentColor = currentRoom?.palette.glow || "#9b7ed9";
+  // Near-black room bg, used as text/icon color on the filled accent CTA for contrast.
+  const onAccentColor = currentRoom?.palette.bg || "#0b0b12";
   const showTags = activeEmotion === "all";
   const museumTitle = currentRoom ? `Museum of ${currentRoom.name}` : "Museum of Artifacts";
   const museumSubtitle = currentRoom
@@ -216,25 +222,36 @@ export function ArtifactGallery() {
 
       {currentRoom && !selectedArtifact && (
         <motion.button
-          whileHover={{ scale: 1.04 }}
+          whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.96 }}
+          animate={
+            formOpen
+              ? { boxShadow: `0 10px 26px ${accentColor}22` }
+              : {
+                  boxShadow: [
+                    `0 12px 30px ${accentColor}40, 0 0 0 0 ${accentColor}55`,
+                    `0 14px 40px ${accentColor}66, 0 0 0 6px ${accentColor}00`,
+                    `0 12px 30px ${accentColor}40, 0 0 0 0 ${accentColor}00`,
+                  ],
+                }
+          }
+          transition={{ duration: 2.4, repeat: Infinity, ease: "easeInOut" }}
           onClick={() => openMemoryForm("gallery_top_right")}
           disabled={formOpen}
-          className="glass fixed right-4 top-4 md:right-8 md:top-6 z-50 flex h-12 items-center gap-2 rounded-full px-4 text-xs uppercase tracking-[0.16em] transition-all"
+          className="fixed right-4 top-4 md:right-8 md:top-6 z-50 flex h-12 w-12 md:w-auto items-center justify-center md:gap-2 rounded-full md:px-5 text-xs font-semibold uppercase tracking-[0.16em] transition-colors"
           style={{
-            background: formOpen ? "rgba(255,255,255,0.06)" : "rgba(255,255,255,0.08)",
-            border: `1px solid ${accentColor}58`,
-            color: "rgba(255,255,255,0.92)",
-            boxShadow: `0 14px 34px ${accentColor}18`,
-            backdropFilter: "blur(8px)",
-            WebkitBackdropFilter: "blur(8px)",
-            opacity: formOpen ? 0.45 : 1,
+            background: formOpen
+              ? "rgba(255,255,255,0.06)"
+              : `linear-gradient(135deg, ${accentColor}, ${accentColor}cc)`,
+            border: `1px solid ${accentColor}`,
+            color: formOpen ? "rgba(255,255,255,0.6)" : onAccentColor,
+            opacity: formOpen ? 0.5 : 1,
             pointerEvents: formOpen ? "none" : "auto",
           }}
           aria-label={`Enter memory in the Museum of ${currentRoom.name}`}
         >
-          <Plus size={16} strokeWidth={2.4} />
-          <span>Enter Memory</span>
+          <Plus size={16} strokeWidth={2.6} />
+          <span className="hidden md:inline">Enter Memory</span>
         </motion.button>
       )}
 
