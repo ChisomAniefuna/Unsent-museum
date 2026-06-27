@@ -307,7 +307,7 @@ export function ArtifactReveal() {
             }}
           >
             {artifact.visibility === "public"
-              ? "Now showing in the Museum of Artifacts."
+              ? `Now showing in the Museum of ${room?.name || "Artifacts"}.`
               : artifact.visibility === "private"
               ? "Only you can see this artifact."
               : "Shareable via direct link."}

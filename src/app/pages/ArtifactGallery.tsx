@@ -118,6 +118,10 @@ export function ArtifactGallery() {
   const currentRoom = activeEmotion !== "all" ? ROOMS.find((r) => r.id === activeEmotion) : null;
   const accentColor = currentRoom?.palette.glow || "#9b7ed9";
   const showTags = activeEmotion === "all";
+  const museumTitle = currentRoom ? `Museum of ${currentRoom.name}` : "Museum of Artifacts";
+  const museumSubtitle = currentRoom
+    ? `Living relics of ${currentRoom.name.toLowerCase()}, emotions given form.`
+    : "Living relics of unsent messages, emotions given form.";
 
   return (
     <div
@@ -165,10 +169,10 @@ export function ArtifactGallery() {
                   letterSpacing: "-0.01em",
                 }}
               >
-                Museum of Artifacts
+                {museumTitle}
               </h1>
               <p className="mt-1 text-sm italic" style={{ fontFamily: "'Cormorant Garamond', serif", color: "rgba(255,255,255,0.85)" }}>
-                Living relics of unsent messages, emotions given form.
+                {museumSubtitle}
               </p>
             </div>
 
