@@ -14,7 +14,6 @@ import { RewindingHandRender } from "./RewindingHandCard";
 import { ShoutBehindGlassRender } from "./ShoutBehindGlassCard";
 import { SmokingSilhouetteRender } from "./SmokingSilhouetteCard";
 import { downloadArtifact } from "./downloadArtifact";
-import { decodeGenes, isUberShader } from "../data/uberGenes";
 import { trackEvent } from "../analytics";
 
 interface Props {
@@ -31,13 +30,6 @@ export function ArtifactDetailModal({ artifact, onClose }: Props) {
   const [copied, setCopied] = useState(false);
   const previewRef = useRef<HTMLDivElement>(null);
   const titleId = `artifact-title-${artifact.id}`;
-
-  // Decode the formula strip only when the artifact's shader is one of the
-  // five emotion uber-shaders. Hand-crafted shaders don't have a gene system,
-  // so they don't get a formula readout.
-  const formula = isUberShader(artifact.shader?.id, artifact.emotion)
-    ? decodeGenes(artifact.dna.seed, artifact.emotion)
-    : null;
 
   // Esc closes; return focus to whatever was focused before the modal opened.
   useEffect(() => {
@@ -236,41 +228,6 @@ export function ArtifactDetailModal({ artifact, onClose }: Props) {
                     The full message is private.
                   </p>
                 )}
-              </div>
-            )}
-
-            {/* Formula strip - only present for uber-shader artifacts. Acts as the
-                artifact's permanent identity: anyone with the same emotion +
-                seed reproduces this exact piece. Modeled on DESIGN≒FORMULA's
-                approach of printing the math under the work. */}
-            {formula && (
-              <div
-                className="px-3 py-2 rounded-lg"
-                style={{
-                  background: "rgba(255,255,255,0.04)",
-                  border: "1px solid rgba(255,255,255,0.08)",
-                }}
-              >
-                <div className="flex items-center justify-between gap-2 mb-1">
-                  <span
-                    className="text-[9px] tracking-[0.22em] uppercase"
-                    style={{ color: "rgba(255,255,255,0.6)", fontFamily: "ui-monospace, Menlo, monospace" }}
-                  >
-                    Formula
-                  </span>
-                  <span
-                    className="text-[10px] tabular-nums"
-                    style={{ color: "rgba(255,255,255,0.7)", fontFamily: "ui-monospace, Menlo, monospace" }}
-                  >
-                    seed {formula.seed}
-                  </span>
-                </div>
-                <div
-                  className="text-[11px] leading-relaxed"
-                  style={{ color: "rgba(255,255,255,0.92)", fontFamily: "ui-monospace, Menlo, monospace" }}
-                >
-                  {formula.field} · {formula.domain} · {formula.palette} · {formula.surface} · {formula.decay}
-                </div>
               </div>
             )}
 

@@ -224,18 +224,6 @@ export function ArtifactGallery() {
         <motion.button
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.96 }}
-          animate={
-            formOpen
-              ? { boxShadow: `0 10px 26px ${accentColor}22` }
-              : {
-                  boxShadow: [
-                    `0 12px 30px ${accentColor}40, 0 0 0 0 ${accentColor}55`,
-                    `0 14px 40px ${accentColor}66, 0 0 0 6px ${accentColor}00`,
-                    `0 12px 30px ${accentColor}40, 0 0 0 0 ${accentColor}00`,
-                  ],
-                }
-          }
-          transition={{ duration: 2.4, repeat: Infinity, ease: "easeInOut" }}
           onClick={() => openMemoryForm("gallery_top_right")}
           disabled={formOpen}
           className="fixed right-4 top-4 md:right-8 md:top-6 z-50 flex h-12 w-12 md:w-auto items-center justify-center md:gap-2 rounded-full md:px-5 text-xs font-semibold uppercase tracking-[0.16em] transition-colors"
@@ -250,7 +238,7 @@ export function ArtifactGallery() {
           }}
           aria-label={`Enter memory in the Museum of ${currentRoom.name}`}
         >
-          <Plus size={16} strokeWidth={2.6} />
+          <Plus size={16} strokeWidth={2.6} className="md:hidden" />
           <span className="hidden md:inline">Enter Memory</span>
         </motion.button>
       )}
