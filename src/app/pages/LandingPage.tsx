@@ -68,7 +68,9 @@ export function LandingPage() {
       emotion: room.id,
       room_name: room.name,
     });
-    window.setTimeout(() => navigate(`/room/${room.id}`), 680);
+    window.setTimeout(() => {
+      navigate(`/room/${room.id}`);
+    }, 680);
   }
 
   function getMobileCardWidth() {

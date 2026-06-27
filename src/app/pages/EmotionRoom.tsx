@@ -1,7 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { useNavigate, useParams } from "react-router";
 import { motion, AnimatePresence } from "motion/react";
-import { Plus } from "lucide-react";
 import { ROOM_MAP } from "../data/rooms";
 import { PresenceAvatars } from "../components/PresenceAvatars";
 import { ArtifactForm } from "../components/ArtifactForm";
@@ -219,24 +218,6 @@ export function EmotionRoom() {
           </button>
         </motion.div>
       </div>
-
-      <motion.button
-        initial={{ opacity: 0, scale: 0.86, y: 8 }}
-        animate={{ opacity: formOpen || leavingRoom ? 0 : 1, scale: formOpen || leavingRoom ? 0.86 : 1, y: 0 }}
-        transition={{ duration: 0.24, ease: [0.25, 0.1, 0.25, 1] }}
-        onClick={openMemoryForm}
-        disabled={formOpen || generating || leavingRoom}
-        className="fixed bottom-6 right-6 z-40 flex h-14 w-14 items-center justify-center rounded-full text-white shadow-2xl lg:hidden"
-        style={{
-          background: `${room.palette.glow}dd`,
-          border: "1px solid rgba(255,255,255,0.48)",
-          boxShadow: `0 16px 36px ${room.palette.glow}3d, inset 0 1px 0 rgba(255,255,255,0.48)`,
-          pointerEvents: formOpen || leavingRoom ? "none" : "auto",
-        }}
-        aria-label="Create artifact"
-      >
-        <Plus size={24} strokeWidth={2.5} />
-      </motion.button>
 
       {/* Bottom Card */}
       <div className="absolute bottom-0 left-0 right-0 z-10 flex flex-col items-center pb-12 px-6">

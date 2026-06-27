@@ -8,8 +8,8 @@ import { preloadCoreRoutes, preloadGalleryRoute, preloadRevealRoute, preloadRoom
 
 // Landing is eager so first paint isn't gated on a chunk fetch. Everything
 // else is split off the main bundle and only loaded when its route is hit.
-// LandingPage preloads the room chunk on door hover/touch/click so the core
-// door -> room path is warm before navigation.
+// Navigations into lazy routes are wrapped in transitions so React keeps the
+// current screen visible instead of swapping to this boundary's null fallback.
 function lazyRoute<T extends { default: React.ComponentType<any> }>(load: () => Promise<T>) {
   return lazy(async () => {
     try {

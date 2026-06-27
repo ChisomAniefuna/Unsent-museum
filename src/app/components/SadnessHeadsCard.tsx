@@ -32,7 +32,7 @@ const HEAD_REGIONS: HeadRegion[] = [
   { cx: 0.77, cy: 0.45, rx: 0.18, ry: 0.18, delay: 0.72, weight: 0.82 },
 ];
 
-const FLUID = { speed: 1.25, zoom: 1.55, warp: 5, grain: 0.03, pixelate: 47, seed: 30, colorMix: 0.88 };
+const FLUID = { speed: 1.25, zoom: 1.55, warp: 5, grain: 0.03, pixelate: 47, seed: 30, colorMix: 0.38 };
 const SADNESS_SPEED = 0.92;
 const ACCENT = "#2e7fb8";
 
@@ -203,7 +203,7 @@ export function SadnessHeadsRender({ className }: { className?: string }) {
       const pa = intf * 0.13 + radius * 0.68 + angle * 0.055 + sec * 0.1 + grain;
       const aurora = paletteAt(pa);
       const headPulse = p.headInfluence * (0.5 + 0.5 * Math.sin(sec * 1.45 - p.headDelay * 6.28 + p.phase));
-      const lum = 0.48 + p.luma * 0.72, shade = 0.9 + headPulse * 0.18;
+      const lum = 0.26 + p.luma * 0.95, shade = 0.9 + headPulse * 0.18;
       return `rgb(${mixCh(p.red, aurora[0] * lum * shade, FLUID.colorMix)},${mixCh(p.green, aurora[1] * lum * shade, FLUID.colorMix)},${mixCh(p.blue, aurora[2] * lum * shade, FLUID.colorMix)})`;
     }
 

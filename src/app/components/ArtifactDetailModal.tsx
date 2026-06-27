@@ -351,7 +351,10 @@ export function ArtifactDetailModal({ artifact, onClose }: Props) {
 
             {/* CTA */}
             <button
-              onClick={() => { onClose(); navigate(`/room/${artifact.emotion}`); }}
+              onClick={() => {
+                onClose();
+                navigate(`/room/${artifact.emotion}`);
+              }}
               className="flex items-center justify-center gap-2 w-full py-3 rounded-xl text-sm"
               style={{
                 background: `${accentColor}20`,
