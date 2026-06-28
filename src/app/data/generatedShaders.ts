@@ -9,6 +9,7 @@ import griefSmokeBreathing from "./generated/grief-smoke-breathing";
 import griefWeepingOrb from "./generated/grief-weeping-orb";
 import griefUber from "./generated/grief-uber";
 import griefAsciiScenes from "./generated/grief-ascii-scenes";
+import griefWillowStory from "./generated/grief-willow-story";
 
 import hopeOrigamiCrane from "./generated/hope-origami-crane";
 import hopeGoldenDragon from "./generated/hope-golden-dragon";
@@ -51,7 +52,7 @@ import closureUber from "./generated/closure-uber";
 
 // Bespoke per-room shaders produced by the museum-room-shaders workflow.
 export const GENERATED: Record<string, ShaderDef[]> = {
-  grief: [griefKintsugi, griefSumie, griefAdinkraOwuo, griefAshVeil, griefFallenRose, griefSmokeBreathing, griefWeepingOrb, griefUber, griefAsciiScenes],
+  grief: [griefKintsugi, griefSumie, griefAdinkraOwuo, griefAshVeil, griefFallenRose, griefSmokeBreathing, griefWeepingOrb, griefUber, griefAsciiScenes, griefWillowStory],
   hope: [hopeOrigamiCrane, hopeGoldenDragon, hopeSunriseAdinkra, hopeLanternHalftone, hopeAsciiAscension, hopeEyeRays, hopeEyeRaysBlink, hopeGoldenPeacock, hopeFiligreeButterfly, hopeUber, hopePaisleyFan],
   closure: [closureEnso, closureZenGarden, closureMoonGate, closureTideHalftone, closureAsciiRain, closureColorExtension, closureFluidPixel, closureUber],
   regret: [regretWillowRain, regretBrokenThread, regretSankofa, regretUndertowHalftone, regretAsciiEcho, regretCrystalMind, regretVortexQuake, regretWaveRings, regretUber],

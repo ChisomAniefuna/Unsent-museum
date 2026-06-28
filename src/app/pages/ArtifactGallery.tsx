@@ -121,8 +121,11 @@ export function ArtifactGallery() {
       }
     }
     if (activeEmotion === "grief") {
-      const lead = ordered.find((a) => a.id === "mock-2");
-      if (lead) return [lead, ...ordered.filter((a) => a.id !== lead.id)];
+      const leadIds = ["mock-grief-willow-story", "mock-2"];
+      const leads = leadIds
+        .map((id) => ordered.find((a) => a.id === id))
+        .filter((artifact): artifact is Artifact => Boolean(artifact));
+      if (leads.length) return [...leads, ...ordered.filter((a) => !leadIds.includes(a.id))];
     }
     return ordered;
   }, [artifacts, activeEmotion, sort, search]);
