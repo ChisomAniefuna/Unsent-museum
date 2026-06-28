@@ -75,7 +75,8 @@ export function EmotionDoor({ room, isHovered, isOpening, isReturning = false, i
       onTouchEnd={() => { if (interactive) onHover(false); }}
       onClick={() => { if (interactive) onClick(); }}
       aria-disabled={!interactive}
-      className={`${interactive ? "group cursor-pointer hover:-translate-y-1" : "cursor-default"} block w-full select-none transition-transform duration-300`}
+      className={`${interactive ? "group cursor-pointer" : "cursor-default"} block w-full select-none transition-transform duration-300`}
+      style={{ transform: interactive && isHovered ? "translateY(-0.25rem)" : "translateY(0)" }}
       aria-label={`Enter ${room.name}`}
     >
       {/* aspect-ratio reserves the door's exact height on first paint (all door

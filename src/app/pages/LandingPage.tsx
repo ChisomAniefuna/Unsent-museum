@@ -39,26 +39,32 @@ export function LandingPage() {
   const location = useLocation();
   const [hoveredRoom, setHoveredRoom] = useState<string | null>(null);
   const [openingRoom, setOpeningRoom] = useState<string | null>(null);
-  const closingDoor = (location.state as { closingDoor?: string } | null)?.closingDoor ?? null;
+  const routeClosingDoor = (location.state as { closingDoor?: string } | null)?.closingDoor ?? null;
+  const [closingDoor, setClosingDoor] = useState<string | null>(routeClosingDoor);
   // Seed the carousel position from closingDoor on FIRST render. Otherwise
   // activeIndex starts at 0 (love), the carousel paints with love centered,
   // and only after the effect runs does it scroll to the returning room - so
   // the visitor briefly sees the wrong door swap in before "their" door
   // settles. This makes the carousel paint correctly on the very first frame.
   const initialIndex = (() => {
-    if (!closingDoor) return 0;
-    const i = ROOMS.findIndex((r) => r.id === closingDoor);
+    if (!routeClosingDoor) return 0;
+    const i = ROOMS.findIndex((r) => r.id === routeClosingDoor);
     return i >= 0 ? i : 0;
   })();
   const [activeIndex, setActiveIndex] = useState(initialIndex);
   const isDesktop = useIsDesktop();
   const carouselRef = useRef<HTMLDivElement>(null);
   const scrollSettleRef = useRef<number | null>(null);
+  const didPositionCarouselRef = useRef(false);
   const isLoopJumpingRef = useRef(false);
   const closingMobileRoomIndex = closingDoor
     ? ROOMS.findIndex((room) => room.id === closingDoor)
     : -1;
   const closingMobileLoopIndex = closingMobileRoomIndex >= 0 ? closingMobileRoomIndex + 1 : -1;
+
+  useEffect(() => {
+    if (routeClosingDoor) setClosingDoor(routeClosingDoor);
+  }, [routeClosingDoor]);
 
   function handleDoorClick(room: RoomDef) {
     if (openingRoom) return;
@@ -91,7 +97,7 @@ export function LandingPage() {
 
   function handleCarouselScroll() {
     const el = carouselRef.current;
-    if (!el || isLoopJumpingRef.current) return;
+    if (!el || isLoopJumpingRef.current || closingDoor) return;
 
     const cardW = getMobileCardWidth();
     const loopIndex = Math.round(el.scrollLeft / cardW);
@@ -113,7 +119,7 @@ export function LandingPage() {
 
   function scrollToIndex(i: number) {
     const el = carouselRef.current;
-    if (!el) return;
+    if (!el || closingDoor) return;
     el.scrollTo({ left: getMobileCardWidth() * (i + 1), behavior: "smooth" });
     setActiveIndex(i);
   }
@@ -134,12 +140,20 @@ export function LandingPage() {
   useLayoutEffect(() => {
     const el = carouselRef.current;
     if (!el) return;
+    // On a normal first landing, seed the loop carousel at the first real door.
+    // On a room return, seed it at the returning door. When closingDoor is
+    // later cleared from history state, do not reposition again; otherwise the
+    // carousel jumps back to Love while the visitor is watching the door close.
+    if (!closingDoor && didPositionCarouselRef.current) return;
+
     const cardW = getMobileCardWidth();
     let loopIndex = 1; // default: first real room (love)
     if (closingDoor) {
       const realIndex = ROOMS.findIndex((room) => room.id === closingDoor);
       if (realIndex >= 0) loopIndex = realIndex + 1; // +1 because MOBILE_LOOP_ROOMS[0] is the duplicated last room
+      setActiveIndex(realIndex);
     }
+    didPositionCarouselRef.current = true;
     isLoopJumpingRef.current = true;
     el.scrollTo({ left: cardW * loopIndex, behavior: "auto" });
     requestAnimationFrame(() => {
@@ -147,19 +161,17 @@ export function LandingPage() {
     });
   }, [closingDoor]);
 
-  // Clear the return marker after the landing has had a beat to restore. The
-  // marker is still useful for positioning the mobile carousel on the correct
-  // door before paint, but the landing itself always renders closed doors right
-  // away so the visitor never sees an empty hall while door leaves/masks mount.
+  // Clear the local return lock after the landing has had a beat to restore.
+  // Do not mutate the route state here: replacing the current history entry can
+  // remount LandingPage on mobile, which re-seeds the carousel at Love and makes
+  // every door slide while the returning door is supposed to be the only motion.
   useEffect(() => {
     if (!closingDoor) return;
 
-    const clearState = window.setTimeout(() => {
-      navigate(".", { replace: true, state: null });
-    }, 1200);
+    const clearState = window.setTimeout(() => setClosingDoor(null), 1200);
 
     return () => window.clearTimeout(clearState);
-  }, [closingDoor, navigate]);
+  }, [closingDoor]);
 
   useEffect(() => {
     return () => {
@@ -199,7 +211,7 @@ export function LandingPage() {
           initial={false}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.3, ease: [0.25, 0.1, 0.25, 1] }}
-          className="mx-auto text-center"
+          className="mx-auto min-h-[9.5rem] text-center lg:min-h-0"
         >
           <h1 className="font-['Cinzel'] text-[clamp(2.3rem,6vw,5rem)] font-black uppercase leading-[0.9] tracking-[-0.05em] text-[#0a0a0a] drop-shadow-[0_4px_16px_rgba(255,255,255,0.4)]">
             The Unsent<br className="sm:hidden" /> Museum
@@ -257,7 +269,7 @@ export function LandingPage() {
                 className="flex-none snap-center px-2 isolate"
                 style={{
                   width: "72vw",
-                  zIndex: openingRoom === room.id ? 50 : 1,
+                  zIndex: openingRoom === room.id || i === closingMobileLoopIndex ? 50 : 1,
                 }}
               >
                 <EmotionDoor
@@ -280,6 +292,7 @@ export function LandingPage() {
                 key={room.id}
                 onClick={() => scrollToIndex(i)}
                 aria-label={`View ${room.name}`}
+                disabled={!!closingDoor}
                 className="transition-all duration-300"
                 style={{
                   width: i === activeIndex ? 22 : 6,
