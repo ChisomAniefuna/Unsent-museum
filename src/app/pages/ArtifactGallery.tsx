@@ -120,6 +120,10 @@ export function ArtifactGallery() {
         return [...special, ...ordered.filter((a) => !a.custom)];
       }
     }
+    if (activeEmotion === "grief") {
+      const lead = ordered.find((a) => a.id === "mock-2");
+      if (lead) return [lead, ...ordered.filter((a) => a.id !== lead.id)];
+    }
     return ordered;
   }, [artifacts, activeEmotion, sort, search]);
 
