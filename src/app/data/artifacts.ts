@@ -1771,24 +1771,6 @@ export const MOCK_ARTIFACTS: Artifact[] = [
   },
 
   {
-    id: "mock-grief-willow-story",
-    emotion: "grief",
-    title: "The Willow Learned My Shape",
-    messageExcerpt: "The grief got taller than me. It bent over anyway, and let one green thing keep breathing.",
-    messageVisibility: "excerpt",
-    creatorDisplayName: "Anonymous Visitor",
-    isAnonymous: true,
-    avatarColor: "#1e2215",
-    avatarInitials: "?",
-    dna: { seed: 4207, shaderIndex: 22, emotion: "grief", intensity: 0.92, timeOffset: 0.0, unique: true },
-    shader: EMOTION_SHADERS.grief[22],
-    createdAt: "2026-06-27T19:07:51Z",
-    likes: 0, shares: 0, downloads: 0,
-    visibility: "public",
-    interpretation: "A bowed willow-face releases leaves and tears, then returns to a small living shoot.",
-  },
-
-  {
     id: "mock-uber-hope",
     emotion: "hope",
     title: "Light Found a Way Through",
@@ -1983,8 +1965,7 @@ const SEED_IDS = new Set([
   "mock-6",      // "Every Song After You"
   "mock-10",     // "We Both Knew"
   "mock-uber-love",      // "The Shape You Left in Me"      (love-uber, heart bloom)
-  // Grief (5 + 3 uber/story)
-  "mock-grief-willow-story", // "The Willow Learned My Shape" (grief-willow-story)
+  // Grief (5 + 2 uber)
   "mock-80",     // "Grief Wears Every Face"
   "mock-2",      // "The Room Is Still Your Size"
   "mock-17",     // "I Still Reach for the Phone"
