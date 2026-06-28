@@ -10,6 +10,7 @@ import { HeadOnFireRender } from "./HeadOnFireCard";
 import { RewindingHandRender } from "./RewindingHandCard";
 import { ShoutBehindGlassRender } from "./ShoutBehindGlassCard";
 import { SmokingSilhouetteRender } from "./SmokingSilhouetteCard";
+import { WillowGriefRender } from "./WillowGriefCard";
 
 // A 3D coverflow of artifact cards, the immersive "museum walk" view. The centred
 // card faces the viewer; neighbours recede in depth and tilt away. Navigate by
@@ -205,6 +206,8 @@ export function ShaderCarousel3D({ artifacts, accentColor, onSelect, showTags }:
                   <ShoutBehindGlassRender className="absolute inset-0" />
                 ) : artifact.custom === "smoke" ? (
                   <SmokingSilhouetteRender className="absolute inset-0" />
+                ) : artifact.custom === "willow" ? (
+                  <WillowGriefRender className="absolute inset-0" />
                 ) : (
                   <ShaderThumb
                     fragmentShader={artifact.shader.glsl}

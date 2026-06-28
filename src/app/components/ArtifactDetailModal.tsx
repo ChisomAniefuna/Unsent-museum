@@ -13,6 +13,7 @@ import { HeadOnFireRender } from "./HeadOnFireCard";
 import { RewindingHandRender } from "./RewindingHandCard";
 import { ShoutBehindGlassRender } from "./ShoutBehindGlassCard";
 import { SmokingSilhouetteRender } from "./SmokingSilhouetteCard";
+import { WillowGriefRender } from "./WillowGriefCard";
 import { downloadArtifact } from "./downloadArtifact";
 import { trackEvent } from "../analytics";
 
@@ -150,6 +151,8 @@ export function ArtifactDetailModal({ artifact, onClose }: Props) {
               <ShoutBehindGlassRender className="absolute inset-0" />
             ) : artifact.custom === "smoke" ? (
               <SmokingSilhouetteRender className="absolute inset-0" />
+            ) : artifact.custom === "willow" ? (
+              <WillowGriefRender className="absolute inset-0" />
             ) : (
               <WebGLCanvas
                 fragmentShader={artifact.shader.glsl}

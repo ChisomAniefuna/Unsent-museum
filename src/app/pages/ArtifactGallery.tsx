@@ -16,6 +16,7 @@ import { HeadOnFireCard } from "../components/HeadOnFireCard";
 import { RewindingHandCard } from "../components/RewindingHandCard";
 import { ShoutBehindGlassCard } from "../components/ShoutBehindGlassCard";
 import { SmokingSilhouetteCard } from "../components/SmokingSilhouetteCard";
+import { WillowGriefCard } from "../components/WillowGriefCard";
 import { ArtifactForm } from "../components/ArtifactForm";
 import { trackEvent } from "../analytics";
 import { useLiquidGlass } from "../hooks/useLiquidGlass";
@@ -121,7 +122,7 @@ export function ArtifactGallery() {
       }
     }
     if (activeEmotion === "grief") {
-      const leadIds = ["mock-grief-willow-story", "mock-2"];
+      const leadIds = ["mock-grief-willow", "mock-grief-willow-story", "mock-2"];
       const leads = leadIds
         .map((id) => ordered.find((a) => a.id === id))
         .filter((artifact): artifact is Artifact => Boolean(artifact));
@@ -398,6 +399,8 @@ export function ArtifactGallery() {
                         <ShoutBehindGlassCard artifact={artifact} showTag={showTags} onClick={() => setSelectedArtifact(artifact)} />
                       ) : artifact.custom === "smoke" ? (
                         <SmokingSilhouetteCard artifact={artifact} showTag={showTags} onClick={() => setSelectedArtifact(artifact)} />
+                      ) : artifact.custom === "willow" ? (
+                        <WillowGriefCard artifact={artifact} showTag={showTags} onClick={() => setSelectedArtifact(artifact)} />
                       ) : (
                         <ShaderArtifactCard
                           artifact={artifact}

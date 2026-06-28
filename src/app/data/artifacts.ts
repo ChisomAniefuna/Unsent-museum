@@ -34,7 +34,7 @@ export interface Artifact {
   // Special canvas-rendered artifacts (pixel/ASCII portraits) that are full members
   // of the gallery and 3D carousel but draw with their own renderer instead of a
   // WebGL fragment shader. Undefined for ordinary shader artifacts.
-  custom?: "mask" | "heads" | "scratch" | "headfire" | "rewind" | "shout" | "smoke";
+  custom?: "mask" | "heads" | "scratch" | "headfire" | "rewind" | "shout" | "smoke" | "willow";
 }
 
 // Reconstruct a valid shader for an artifact from its emotion + shaderIndex when
@@ -1789,6 +1789,25 @@ export const MOCK_ARTIFACTS: Artifact[] = [
   },
 
   {
+    id: "mock-grief-willow",
+    emotion: "grief",
+    title: "I Let One Green Thing Breathe",
+    messageExcerpt: "The grief got taller than me. It bent over anyway, and let one green thing keep breathing.",
+    messageVisibility: "excerpt",
+    creatorDisplayName: "Anonymous Visitor",
+    isAnonymous: true,
+    avatarColor: "#1e2215",
+    avatarInitials: "?",
+    dna: { seed: 4208, shaderIndex: 0, emotion: "grief", intensity: 0.92, timeOffset: 0.0 },
+    shader: EMOTION_SHADERS.grief[0],
+    createdAt: "2026-06-27T19:30:00Z",
+    likes: 0, shares: 0, downloads: 0,
+    visibility: "public",
+    interpretation: "A black willow bends into a grieving face: branches shed on the wind, tears fall into ripples, and a single green shoot returns.",
+    custom: "willow",
+  },
+
+  {
     id: "mock-uber-hope",
     emotion: "hope",
     title: "Light Found a Way Through",
@@ -1983,7 +2002,8 @@ const SEED_IDS = new Set([
   "mock-6",      // "Every Song After You"
   "mock-10",     // "We Both Knew"
   "mock-uber-love",      // "The Shape You Left in Me"      (love-uber, heart bloom)
-  // Grief (5 + 3 uber/story)
+  // Grief (5 + 3 uber/story + 1 canvas)
+  "mock-grief-willow",       // "I Let One Green Thing Breathe" (willow canvas piece)
   "mock-grief-willow-story", // "The Willow Learned My Shape" (grief-willow-story)
   "mock-80",     // "Grief Wears Every Face"
   "mock-2",      // "The Room Is Still Your Size"

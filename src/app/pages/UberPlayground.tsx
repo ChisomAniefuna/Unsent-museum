@@ -9,6 +9,7 @@ import flowerUber from "../data/generated/flower-mandala-uber";
 import griefAsciiScenes from "../data/generated/grief-ascii-scenes";
 import { decodeGenes, UberEmotion, GENE_LABELS } from "../data/uberGenes";
 import { trackEvent } from "../analytics";
+import { WillowGriefRender, WILLOW_DEFAULTS, type WillowParams } from "../components/WillowGriefCard";
 
 const SHADERS = {
   love: loveUber,
@@ -21,6 +22,17 @@ const SHADERS = {
 } as const;
 
 type CategoryKey = keyof typeof SHADERS;
+// "willow" is a Canvas2D particle piece, not a GLSL uber-shader, so it lives
+// outside SHADERS and gets its own sliders instead of seed/genes.
+type Tab = CategoryKey | "willow";
+const WILLOW_SLIDERS: { key: keyof WillowParams; label: string; min: number; max: number }[] = [
+  { key: "dissolve", label: "dissolve", min: 0, max: 220 },
+  { key: "wind", label: "wind", min: 0, max: 220 },
+  { key: "tears", label: "tears", min: 0, max: 220 },
+  { key: "ripples", label: "ripples", min: 0, max: 220 },
+  { key: "regrowth", label: "regrowth", min: 0, max: 220 },
+  { key: "speed", label: "speed", min: 30, max: 200 },
+];
 
 // "flower" is a non-emotion category so it keeps its gene labels here instead
 // of in uberGenes.ts. Same 5-gene shape (just different vocabulary).
@@ -89,17 +101,21 @@ const HEADER_LABELS: Record<CategoryKey, { field: string; domain: string; palett
 };
 
 export function UberPlayground() {
-  const [emotion, setEmotion] = useState<CategoryKey>("grief");
+  const [tab, setTab] = useState<Tab>("grief");
   const [seed, setSeed] = useState(31);
   const [unique, setUnique] = useState(1);
   const [reloadKey, setReloadKey] = useState(0);
+  const [willowParams, setWillowParams] = useState<WillowParams>({ ...WILLOW_DEFAULTS });
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
+  const isWillow = tab === "willow";
+  const emotion: CategoryKey = isWillow ? "grief" : tab;
   const shader = SHADERS[emotion];
   const genes = useMemo(() => decode(seed, emotion), [seed, emotion]);
   const labels = HEADER_LABELS[emotion];
 
   useEffect(() => {
+    if (isWillow) return; // Canvas2D willow renders itself; skip the GLSL blit loop
     const blitCanvas = canvasRef.current;
     if (!blitCanvas) return;
     const ctx = blitCanvas.getContext("2d");
@@ -122,7 +138,7 @@ export function UberPlayground() {
     }
     raf = requestAnimationFrame(loop);
     return () => cancelAnimationFrame(raf);
-  }, [shader, seed, unique, reloadKey]);
+  }, [shader, seed, unique, reloadKey, isWillow]);
 
   const containerStyle: React.CSSProperties = {
     width: "100vw",
@@ -174,16 +190,18 @@ export function UberPlayground() {
         <div>
           <div style={{ fontSize: 24, fontWeight: 700 }}>Uber Shader Playground</div>
           <div style={monoMuted}>
-            {shader.id} &middot; {shader.name} &middot; src/app/data/generated/{shader.id}.ts
+            {isWillow
+              ? "grief-willow · Willow of Grief · src/app/components/WillowGriefCard.tsx"
+              : `${shader.id} · ${shader.name} · src/app/data/generated/${shader.id}.ts`}
           </div>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
           <div style={{ display: "flex", gap: 6, background: "#0f0f17", border: "1px solid #1e1e2a", borderRadius: 8, padding: 4 }}>
-            {(Object.keys(SHADERS) as CategoryKey[]).map((e) => (
+            {([...(Object.keys(SHADERS) as CategoryKey[]), "willow"] as Tab[]).map((e) => (
               <button
                 key={e}
                 onClick={() => {
-                  setEmotion(e);
+                  setTab(e);
                   trackEvent("shader_experimented", {
                     shader_category: e,
                     seed,
@@ -195,8 +213,8 @@ export function UberPlayground() {
                   padding: "6px 14px",
                   borderRadius: 6,
                   border: "none",
-                  background: emotion === e ? "#2a223a" : "transparent",
-                  color: emotion === e ? "#e9e9f2" : "#8b8b9a",
+                  background: tab === e ? "#2a223a" : "transparent",
+                  color: tab === e ? "#e9e9f2" : "#8b8b9a",
                   fontSize: 13,
                   fontWeight: 600,
                   cursor: "pointer",
@@ -214,14 +232,48 @@ export function UberPlayground() {
       </div>
 
       <div style={canvasWrap}>
-        <canvas
-          ref={canvasRef}
-          width={680}
-          height={680}
-          style={{ width: "min(680px, 70vh)", height: "min(680px, 70vh)", borderRadius: 10, background: "#000", boxShadow: "0 0 60px rgba(120,100,200,0.18)" }}
-        />
+        {isWillow ? (
+          <div style={{ position: "relative", height: "min(700px, 74vh)", aspectRatio: "420 / 475", borderRadius: 10, overflow: "hidden", background: "#000", boxShadow: "0 0 60px rgba(120,100,200,0.18)" }}>
+            <WillowGriefRender className="absolute inset-0" params={willowParams} />
+          </div>
+        ) : (
+          <canvas
+            ref={canvasRef}
+            width={680}
+            height={680}
+            style={{ width: "min(680px, 70vh)", height: "min(680px, 70vh)", borderRadius: 10, background: "#000", boxShadow: "0 0 60px rgba(120,100,200,0.18)" }}
+          />
+        )}
       </div>
 
+      {isWillow ? (
+        <div style={card}>
+          <div style={{ fontSize: 12, color: "#8b8b9a", marginBottom: 10, letterSpacing: 0.2 }}>GRIEF CYCLE PARAMETERS</div>
+          {WILLOW_SLIDERS.map((s) => (
+            <label key={s.key} style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 8, fontFamily: "ui-monospace, Menlo, monospace", fontSize: 12, color: "#8b8b9a" }}>
+              <span style={{ width: 70 }}>{s.label}</span>
+              <input
+                type="range"
+                min={s.min}
+                max={s.max}
+                value={willowParams[s.key]}
+                onChange={(e) => setWillowParams((p) => ({ ...p, [s.key]: parseInt(e.target.value, 10) }))}
+                style={{ flex: 1 }}
+              />
+              <span style={{ width: 34, textAlign: "right", color: "#c9c8ff" }}>{willowParams[s.key]}</span>
+            </label>
+          ))}
+          <button
+            onClick={() => setWillowParams({ ...WILLOW_DEFAULTS })}
+            style={{ marginTop: 6, padding: "8px 14px", background: "#221e3a", color: "#e9e9f2", border: "1px solid #3a3550", borderRadius: 6, cursor: "pointer" }}
+          >
+            Reset
+          </button>
+          <div style={{ marginTop: 12, fontSize: 12, color: "#6b6b7a" }}>
+            15-second grief loop: calm &rarr; dissolve &rarr; tears fall &rarr; particles return &rarr; regrowth.
+          </div>
+        </div>
+      ) : (
       <div style={controlsRow}>
         <div style={card}>
           <div style={{ fontSize: 12, color: "#8b8b9a", marginBottom: 10, letterSpacing: 0.2 }}>SEED</div>
@@ -324,6 +376,7 @@ export function UberPlayground() {
           </div>
         </div>
       </div>
+      )}
     </div>
   );
 }
