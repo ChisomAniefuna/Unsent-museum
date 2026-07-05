@@ -338,8 +338,10 @@ export const MOCK_ARTIFACTS: Artifact[] = [
     isAnonymous: false,
     avatarColor: "#0a7a5c",
     avatarInitials: "E.",
-    dna: { seed: 2219, shaderIndex: 0, emotion: "closure", intensity: 0.5, timeOffset: 1.4 },
-    shader: EMOTION_SHADERS.closure[0],
+    // Was closure[0] (glyph ring), which read as a twin of the uber-closure
+    // radial ring in the gallery. Rising tide keeps the room visually distinct.
+    dna: { seed: 2219, shaderIndex: 2, emotion: "closure", intensity: 0.5, timeOffset: 1.4 },
+    shader: EMOTION_SHADERS.closure[2],
     createdAt: "2025-06-12T08:30:00Z",
     likes: 0,
     shares: 0,
