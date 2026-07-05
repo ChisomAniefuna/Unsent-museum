@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { motion } from "motion/react";
 import { Heart, Share2, Download } from "lucide-react";
 import maskImageSrc from "../../imports/masked-face.webp";
+import maskCutoutSrc from "../../imports/masked-face-cutout.webp";
 import type { Artifact } from "../data/artifacts";
 import { useLiked, toggleLike, likeCount } from "../hooks/useLikeStore";
 
@@ -74,6 +75,7 @@ export function CryingMaskRender({ className }: { className?: string }) {
   const pointer    = useRef({ x: 0, y: 0, active: false });
   const rafRef     = useRef<number>(0);
   const builtRef   = useRef(false);
+  const [renderReady, setRenderReady] = useState(false);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -134,6 +136,7 @@ export function CryingMaskRender({ className }: { className?: string }) {
         }
       }
       particles.current = list;
+      if (mounted) setRenderReady(list.length > 0);
     }
 
     function draw(time: number) {
@@ -238,11 +241,23 @@ export function CryingMaskRender({ className }: { className?: string }) {
   }, []);
 
   return (
-    <canvas
-      ref={canvasRef}
-      className={className}
-      style={{ display: "block", width: "100%", height: "100%", background: "#030408", cursor: "pointer", touchAction: "manipulation" }}
-    />
+    <div className={className} style={{ background: "#030408", overflow: "hidden" }}>
+      <img
+        src={maskCutoutSrc}
+        alt=""
+        draggable={false}
+        className="absolute inset-0 h-full w-full object-contain pointer-events-none transition-opacity duration-500"
+        style={{
+          opacity: renderReady ? 0.18 : 1,
+          filter: "drop-shadow(0 22px 34px rgba(0,0,0,0.36))",
+        }}
+      />
+      <canvas
+        ref={canvasRef}
+        className="absolute inset-0 h-full w-full"
+        style={{ display: "block", background: "transparent", cursor: "pointer", touchAction: "manipulation" }}
+      />
+    </div>
   );
 }
 
