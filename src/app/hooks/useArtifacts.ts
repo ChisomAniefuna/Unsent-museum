@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "/utils/supabase/info";
-import { SEED_ARTIFACTS, Artifact, dnaKey, registerKnownArtifactDNA, withSafeShader } from "../data/artifacts";
+import { SEED_ARTIFACTS, Artifact, dnaKey, registerKnownArtifactDNA, rerollVisualSeed, withSafeShader } from "../data/artifacts";
 
 // Locally-created artifacts are cached in localStorage so EVERY artifact a visitor
 // makes shows up in the gallery immediately and survives reloads, even when the
@@ -145,11 +145,19 @@ export async function likeArtifact(id: string): Promise<number> {
 }
 
 export async function saveArtifact(artifact: Artifact): Promise<Artifact> {
-  const { data, error } = await supabase
-    .from("artifacts")
-    .insert(toRow(artifact))
-    .select("id, emotion, visibility, created_at, payload")
-    .single();
-  if (error) throw new Error(`Save failed: ${error.message}`);
-  return fromRow(data);
+  // The artifacts table has a unique index on (emotion, shader, visual seed):
+  // no two public artifacts can render identically. If another visitor claims
+  // the same visual DNA between our generate and save (code 23505), re-roll a
+  // fresh seed and try again instead of losing the piece.
+  let candidate = artifact;
+  for (let attempt = 0; ; attempt++) {
+    const { data, error } = await supabase
+      .from("artifacts")
+      .insert(toRow(candidate))
+      .select("id, emotion, visibility, created_at, payload")
+      .single();
+    if (!error) return fromRow(data);
+    if (error.code !== "23505" || attempt >= 2) throw new Error(`Save failed: ${error.message}`);
+    candidate = rerollVisualSeed(candidate);
+  }
 }

@@ -157,6 +157,18 @@ function nextShaderIndex(emotion: string, count: number): number {
   return idx;
 }
 
+// Give an artifact a fresh, non-colliding visual seed for its existing
+// emotion+shader pair. Used when the server rejects a save because another
+// visitor claimed the same visual DNA first (unique-index race).
+export function rerollVisualSeed(artifact: Artifact): Artifact {
+  const seed = uniqueSeed(
+    artifact.messageExcerpt || artifact.id,
+    artifact.emotion,
+    artifact.dna.shaderIndex,
+  );
+  return { ...artifact, dna: { ...artifact.dna, seed } };
+}
+
 export function generateArtifact(
   emotion: string,
   message: string,
