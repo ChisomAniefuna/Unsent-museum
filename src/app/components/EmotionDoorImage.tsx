@@ -51,7 +51,7 @@ export function EmotionDoorImage({ door, alt, loading = "eager", draggable = fal
       src={DOOR_IMAGE_SRC[door]}
       alt={alt ?? ""}
       loading={loading}
-      decoding="async"
+      decoding="sync"
       {...highPriorityImageProps}
       draggable={draggable}
       {...props}
