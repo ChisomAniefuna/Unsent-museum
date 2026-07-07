@@ -43,8 +43,13 @@ export function LandingPage() {
   const routeClosingDoor = (() => {
     const id = routeState?.closingDoor ?? null;
     if (!id) return null;
-    const ts = routeState?.closingAt;
-    if (!ts || Date.now() - ts > 4000) return null;
+    // Require a `closingAt` timestamp: navigations from handleReturnToMuseum
+    // always include one; stale history-state replays from before that fix
+    // will not. Presence is what matters here — not freshness — because the
+    // gap between the setTimeout in EmotionRoom and this render can stretch
+    // to many seconds on cold-mount / throttled tabs, and rejecting those as
+    // stale would silently swallow the closing animation.
+    if (typeof routeState?.closingAt !== "number") return null;
     return id;
   })();
   const [closingDoor, setClosingDoor] = useState<string | null>(routeClosingDoor);
@@ -69,9 +74,9 @@ export function LandingPage() {
     : -1;
   const closingMobileLoopIndex = closingMobileRoomIndex >= 0 ? closingMobileRoomIndex + 1 : -1;
 
-  useEffect(() => {
-    if (routeClosingDoor) setClosingDoor(routeClosingDoor);
-  }, [routeClosingDoor]);
+  // Removed sync effect — useState(routeClosingDoor) already seeds the state
+  // on mount, and re-syncing here causes an extra render that unmounts the
+  // returning door's <DoorLeaf> before the closing animation can play.
 
   function handleDoorClick(room: RoomDef) {
     if (openingRoom) return;
@@ -170,9 +175,10 @@ export function LandingPage() {
 
   useEffect(() => {
     if (!closingDoor) return;
-    try { window.history.replaceState({}, "", window.location.pathname); } catch (_) {}
-
-    const clearState = window.setTimeout(() => setClosingDoor(null), 1200);
+    const clearState = window.setTimeout(() => {
+      setClosingDoor(null);
+      try { window.history.replaceState({}, "", window.location.pathname); } catch (_) {}
+    }, 1400);
     return () => window.clearTimeout(clearState);
   }, [closingDoor]);
 

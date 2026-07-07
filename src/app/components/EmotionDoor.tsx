@@ -23,7 +23,10 @@ export function EmotionDoor({ room, isHovered, isOpening, isReturning = false, i
     }
 
     setReturnClosing(true);
-    const t = window.setTimeout(() => setReturnClosing(false), 680);
+    // Keep the DoorLeafs mounted long enough for the 1.1s closing rotation
+    // to complete and settle. If we unmount them too early, the visitor sees
+    // no closing indication at all — just an instant cut to a static door.
+    const t = window.setTimeout(() => setReturnClosing(false), 1200);
     return () => window.clearTimeout(t);
   }, [isReturning]);
 
@@ -168,7 +171,7 @@ function DoorLeaf({ room, side, angle, initialAngle }: { room: RoomDef; side: "l
       }}
       initial={initialAngle === undefined ? false : { rotateY: initialAngle }}
       animate={{ rotateY: angle }}
-      transition={{ duration: 0.6, ease: [0.25, 0.1, 0.25, 1] }}
+      transition={{ duration: initialAngle !== undefined ? 1.1 : 0.6, ease: [0.25, 0.1, 0.25, 1] }}
     >
       <EmotionDoorImage
         door={room.door}
