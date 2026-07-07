@@ -41,11 +41,9 @@ export function EmotionRoom() {
     });
   }
 
-  // Aggressively start video playback, resilient to poor networks
   useEffect(() => {
     const v = videoRef.current;
     if (!v) return;
-    v.load();
     const tryPlay = () => { v.play().catch(() => {}); };
     v.addEventListener("canplay", tryPlay);
     v.addEventListener("canplaythrough", tryPlay);

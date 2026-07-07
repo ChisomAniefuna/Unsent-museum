@@ -43,7 +43,6 @@ export function EmotionDoor({ room, isHovered, isOpening, isReturning = false, i
   const leftInitialAngle = returnClosing ? -76 : undefined;
   const rightInitialAngle = returnClosing ? 76 : undefined;
 
-  // Prime the room video on hover, a head-start before navigation.
   const preloadRef = useRef<HTMLVideoElement | null>(null);
   function startPreload() {
     if (preloadRef.current) return;
@@ -62,9 +61,13 @@ export function EmotionDoor({ room, isHovered, isOpening, isReturning = false, i
     const v = preloadRef.current;
     if (!v) return;
     v.pause();
-    setTimeout(() => { try { v.remove(); } catch (_) {} }, 3000);
+    v.removeAttribute("src");
+    v.load();
+    try { v.remove(); } catch (_) {}
     preloadRef.current = null;
   }
+
+  useEffect(() => () => stopPreload(), []);
 
   return (
     <button

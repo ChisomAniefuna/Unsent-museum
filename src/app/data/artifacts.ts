@@ -1950,7 +1950,7 @@ export const MOCK_ARTIFACTS: Artifact[] = [
   },
   {
     id: "mock-smoke",
-    emotion: "regret",
+    emotion: "grief",
     title: "I Burned Slow, Thinking of You",
     messageExcerpt: "I sat in the dark and let it all burn down to nothing, like us.",
     messageVisibility: "excerpt",
@@ -1958,9 +1958,9 @@ export const MOCK_ARTIFACTS: Artifact[] = [
     isAnonymous: true,
     avatarColor: "#5c2e1d",
     avatarInitials: "?",
-    dna: { seed: 33, shaderIndex: 4, emotion: "regret", intensity: 0.86, timeOffset: 0 },
-    shader: EMOTION_SHADERS.regret[4],
-    createdAt: "2025-06-18T22:30:00Z",
+    dna: { seed: 33, shaderIndex: 4, emotion: "grief", intensity: 0.86, timeOffset: 0 },
+    shader: EMOTION_SHADERS.grief[4],
+    createdAt: "2026-06-18T12:00:00Z",
     likes: 0, shares: 0, downloads: 0,
     visibility: "public",
     interpretation: "A woman by a window made of sparks, raising her hand to smoke as she slowly dissolves into the dark.",
@@ -1987,6 +1987,7 @@ const SEED_IDS = new Set([
   "mock-22",     // "Nothing Dramatic, Just Quiet"
   "mock-uber-grief",     // "I Keep Setting Two Plates"      (grief-uber, drift radial ash)
   "mock-uber-ascii",     // "It Cracked the Quiet Way"       (grief-ascii-scenes, broken heart amber)
+  "mock-smoke",  // "I Burned Slow, Thinking of You" (smoking silhouette)
   // Hope (5 + 2 uber)
   "mock-81",     // "I Take Up Space Again"
   "mock-82",     // "It Still Knows How to Fly"
@@ -2002,7 +2003,6 @@ const SEED_IDS = new Set([
   "mock-headfire", // "My Head Was Always on Fire" (head on fire)
   "mock-rewind", // "I Keep Rewinding to the Mistake" (rewinding hand)
   "mock-shout",  // "Everything I Never Got to Scream" (shout behind glass)
-  "mock-smoke",  // "I Burned Slow, Thinking of You" (smoking silhouette)
   "mock-4",      // "The Other Path"
   "mock-13",     // "That One Sentence"
   "mock-44",     // "Two Versions of My Life"

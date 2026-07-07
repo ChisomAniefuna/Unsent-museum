@@ -32,8 +32,15 @@ const ArtifactReveal = lazyRoute(() => preloadRevealRoute().then(m => ({ default
 const CryingMaskExhibit = lazyRoute(() => import("./components/CryingMaskExhibit").then(m => ({ default: m.CryingMaskExhibit })));
 const UberPlayground = lazyRoute(() => import("./pages/UberPlayground").then(m => ({ default: m.UberPlayground })));
 
-class RouteErrorBoundary extends Component<{ children: ReactNode }, { error: Error | null }> {
-  state = { error: null };
+class RouteErrorBoundary extends Component<{ resetKey: string; children: ReactNode }, { error: Error | null; prevResetKey: string }> {
+  state: { error: Error | null; prevResetKey: string } = { error: null, prevResetKey: "" };
+
+  static getDerivedStateFromProps(props: { resetKey: string }, state: { prevResetKey: string }) {
+    if (props.resetKey !== state.prevResetKey) {
+      return { error: null, prevResetKey: props.resetKey };
+    }
+    return null;
+  }
 
   static getDerivedStateFromError(error: Error) {
     return { error };
@@ -110,7 +117,7 @@ function RoutedApp() {
         id="main"
         style={{ width: "100%", height: "100vh", overflowY: "auto", overflowX: "hidden", background: "#04030a", color: "white", fontFamily: "system-ui, sans-serif" }}
       >
-        <RouteErrorBoundary key={location.key || location.pathname}>
+        <RouteErrorBoundary resetKey={location.pathname}>
           <Suspense fallback={<RouteFallback />}>
             <Routes>
               <Route path="/" element={<LandingPage />} />

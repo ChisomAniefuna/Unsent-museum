@@ -121,7 +121,7 @@ export function ArtifactGallery() {
       }
     }
     if (activeEmotion === "grief") {
-      const lead = ordered.find((a) => a.id === "mock-2");
+      const lead = ordered.find((a) => a.id === "mock-smoke");
       if (lead) return [lead, ...ordered.filter((a) => a.id !== lead.id)];
     }
     return ordered;

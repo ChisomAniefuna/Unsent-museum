@@ -248,7 +248,7 @@ export function CryingMaskRender({ className }: { className?: string }) {
         draggable={false}
         className="absolute inset-0 h-full w-full object-contain pointer-events-none transition-opacity duration-500"
         style={{
-          opacity: renderReady ? 0.18 : 1,
+          opacity: renderReady ? 0 : 1,
           filter: "drop-shadow(0 22px 34px rgba(0,0,0,0.36))",
         }}
       />
