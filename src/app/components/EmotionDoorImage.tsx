@@ -36,7 +36,6 @@ export function warmDoorImages() {
     img.loading = "eager";
     img.fetchPriority = "high";
     img.src = src;
-    img.decode?.().catch(() => {});
     warmedDoorImages.push(img);
   });
 }

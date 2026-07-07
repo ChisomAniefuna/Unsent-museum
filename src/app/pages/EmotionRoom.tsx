@@ -60,7 +60,7 @@ export function EmotionRoom() {
     if (!room || leavingRoom) return;
     setLeavingRoom(true);
     window.setTimeout(() => {
-      navigate("/", { state: { closingDoor: room.id }, replace: true });
+      navigate("/", { state: { closingDoor: room.id, closingAt: Date.now() }, replace: true });
     }, 220);
   }
 

@@ -75,7 +75,7 @@ export function EmotionDoor({ room, isHovered, isOpening, isReturning = false, i
     >
       {/* aspect-ratio reserves the door's exact height on first paint (all door
           art is ~1340×2200), so the box never collapses while images load. */}
-      <div className="relative w-full [perspective:1200px]" style={{ aspectRatio: "1340 / 2200" }}>
+      <div className="relative w-full" style={{ aspectRatio: "1340 / 2200", perspective: active ? 1200 : undefined }}>
         {/* Portal revealed on hover/open, shows real room preview, masked to arch */}
         <div
           className="absolute inset-0 z-[1] overflow-hidden transition-opacity duration-300"

@@ -39,7 +39,14 @@ export function LandingPage() {
   const location = useLocation();
   const [hoveredRoom, setHoveredRoom] = useState<string | null>(null);
   const [openingRoom, setOpeningRoom] = useState<string | null>(null);
-  const routeClosingDoor = (location.state as { closingDoor?: string } | null)?.closingDoor ?? null;
+  const routeState = location.state as { closingDoor?: string; closingAt?: number } | null;
+  const routeClosingDoor = (() => {
+    const id = routeState?.closingDoor ?? null;
+    if (!id) return null;
+    const ts = routeState?.closingAt;
+    if (!ts || Date.now() - ts > 4000) return null;
+    return id;
+  })();
   const [closingDoor, setClosingDoor] = useState<string | null>(routeClosingDoor);
   // Seed the carousel position from closingDoor on FIRST render. Otherwise
   // activeIndex starts at 0 (love), the carousel paints with love centered,
@@ -163,14 +170,9 @@ export function LandingPage() {
 
   useEffect(() => {
     if (!closingDoor) return;
+    try { window.history.replaceState({}, "", window.location.pathname); } catch (_) {}
 
-    const clearState = window.setTimeout(() => {
-      setClosingDoor(null);
-      // Scrub closingDoor from the history entry so it won't replay the
-      // closing animation if the user later navigates back to this entry.
-      try { window.history.replaceState({}, "", window.location.pathname); } catch (_) {}
-    }, 1200);
-
+    const clearState = window.setTimeout(() => setClosingDoor(null), 1200);
     return () => window.clearTimeout(clearState);
   }, [closingDoor]);
 
