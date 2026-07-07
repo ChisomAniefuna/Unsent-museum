@@ -20,7 +20,7 @@ warmDoorImages();
 // 5 — which delayed the doors painting on every landing load and every room
 // return. Gating on a media query renders just the 5 (or 7) that are visible.
 function useIsDesktop() {
-  const query = "(min-width: 1024px)"; // Tailwind's lg breakpoint
+  const query = "(min-width: 768px)";
   const [isDesktop, setIsDesktop] = useState(
     () => typeof window !== "undefined" && window.matchMedia(query).matches
   );
@@ -229,7 +229,7 @@ export function LandingPage() {
             so they paint immediately. No entrance animation: the doors ARE the
             landing page and must be visible the instant it renders. */}
         {isDesktop && (
-        <div className="grid mx-auto mt-[min(7vh,3.5rem)] w-full max-w-6xl grid-cols-5 gap-5">
+        <div className="grid mx-auto mt-[min(7vh,3.5rem)] w-full max-w-6xl grid-cols-5 gap-3 md:gap-5 px-3 md:px-0">
           {ROOMS.map((room) => (
             <div
               key={room.id}
