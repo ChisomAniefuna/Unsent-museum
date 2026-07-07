@@ -37,6 +37,11 @@ export function warmDoorImages() {
     img.fetchPriority = "high";
     img.src = src;
     warmedDoorImages.push(img);
+    // decode() warms the browser's decoded-pixel cache so when LandingPage
+    // remounts on return-from-room, new <img> elements paint immediately
+    // instead of blocking on fresh decodes. Without this, all 5 door imgs
+    // race to decode on the main thread during mount and paint staggered.
+    img.decode?.().catch(() => {});
   });
 }
 
