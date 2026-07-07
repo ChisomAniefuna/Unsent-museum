@@ -3,14 +3,6 @@ import { motion } from "motion/react";
 import type { RoomDef } from "../data/rooms";
 import { EmotionDoorImage } from "./EmotionDoorImage";
 
-// A single museum door. The photographic carved-door webp is the ONLY thing
-// ever drawn in the archway — no colour-block, no blurred thumbnail, and no
-// JS "has it loaded yet?" gate. The <img> is always rendered: the browser
-// paints nothing until the webp decodes, then paints the sharp door. Cached
-// (the common case, since index.html preloads every door at high priority) =>
-// instant. Cold => the real door simply appears the moment it arrives, with no
-// artificial invisible-until-detected window. Opens on hover to reveal the room.
-
 interface DoorProps {
   room: RoomDef;
   isHovered: boolean;
@@ -23,7 +15,6 @@ interface DoorProps {
 
 export function EmotionDoor({ room, isHovered, isOpening, isReturning = false, isReturnLocked = false, onHover, onClick }: DoorProps) {
   const [returnClosing, setReturnClosing] = useState(isReturning);
-  const wasReturningRef = useRef(isReturning);
 
   useEffect(() => {
     if (!isReturning) {
@@ -32,23 +23,12 @@ export function EmotionDoor({ room, isHovered, isOpening, isReturning = false, i
     }
 
     setReturnClosing(true);
-    const t = window.setTimeout(() => {
-      wasReturningRef.current = true;
-      setReturnClosing(false);
-    }, 680);
+    const t = window.setTimeout(() => setReturnClosing(false), 680);
     return () => window.clearTimeout(t);
   }, [isReturning]);
 
-  useEffect(() => {
-    if (wasReturningRef.current && !returnClosing) {
-      const id = requestAnimationFrame(() => { wasReturningRef.current = false; });
-      return () => cancelAnimationFrame(id);
-    }
-  }, [returnClosing]);
-
   const interactive = !isReturnLocked;
   const active = isHovered || isOpening || returnClosing;
-  const hideClosedDoor = isHovered || isOpening || returnClosing;
   const leftAngle = isOpening ? -76 : isHovered ? -10 : 0;
   const rightAngle = isOpening ? 76 : isHovered ? 10 : 0;
   const leftInitialAngle = returnClosing ? -76 : undefined;
@@ -128,8 +108,8 @@ export function EmotionDoor({ room, isHovered, isOpening, isReturning = false, i
         </div>
 
         <div
-          className={`absolute inset-0 z-10 ${wasReturningRef.current ? "" : "transition-opacity duration-150"}`}
-          style={{ opacity: hideClosedDoor ? 0 : 1 }}
+          className="absolute inset-0 z-10"
+          style={{ opacity: active ? 0 : 1 }}
         >
           <EmotionDoorImage
             door={room.door}

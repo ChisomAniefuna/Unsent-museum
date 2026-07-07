@@ -161,14 +161,15 @@ export function LandingPage() {
     });
   }, [closingDoor]);
 
-  // Clear the local return lock after the landing has had a beat to restore.
-  // Do not mutate the route state here: replacing the current history entry can
-  // remount LandingPage on mobile, which re-seeds the carousel at Love and makes
-  // every door slide while the returning door is supposed to be the only motion.
   useEffect(() => {
     if (!closingDoor) return;
 
-    const clearState = window.setTimeout(() => setClosingDoor(null), 1200);
+    const clearState = window.setTimeout(() => {
+      setClosingDoor(null);
+      // Scrub closingDoor from the history entry so it won't replay the
+      // closing animation if the user later navigates back to this entry.
+      try { window.history.replaceState({}, "", window.location.pathname); } catch (_) {}
+    }, 1200);
 
     return () => window.clearTimeout(clearState);
   }, [closingDoor]);
