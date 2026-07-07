@@ -121,8 +121,13 @@ export function ArtifactGallery() {
       }
     }
     if (activeEmotion === "grief") {
-      const lead = ordered.find((a) => a.id === "mock-smoke");
-      if (lead) return [lead, ...ordered.filter((a) => a.id !== lead.id)];
+      const rest = [...ordered];
+      const pins = ["mock-smoke", "mock-uber-grief", "mock-17"];
+      const pinned = pins.map((id) => {
+        const idx = rest.findIndex((a) => a.id === id);
+        return idx >= 0 ? rest.splice(idx, 1)[0] : null;
+      }).filter(Boolean);
+      if (pinned.length) return [...pinned, ...rest];
     }
     return ordered;
   }, [artifacts, activeEmotion, sort, search]);

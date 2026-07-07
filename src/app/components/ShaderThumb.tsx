@@ -1,31 +1,15 @@
 import { useEffect, useRef } from "react";
 import { renderShader } from "./shaderEngine";
 
-// Card-sized shader preview. Draws through the shared WebGL engine onto a plain 2D
-// canvas, so there's no per-card WebGL context (and thus no context-limit blanks).
-//
-// Behaviour (mirrors premium shader galleries like shaders.com):
-//   • The REAL shader's first frame is painted the instant the card scrolls in , 
-//     you immediately see what the shader is, not a placeholder.
-//   • Animation runs only while `paused` is false (the card passes `paused={!hovered}`),
-//     so at most the hovered card animates. Idle cards cost ~0 GPU and the 2D canvas
-//     keeps its last frame, so nothing ever goes blank.
-// To make every visible card animate ambiently instead, pass `paused={false}`.
-
 interface Props {
   fragmentShader: string;
   className?: string;
   timeOffset?: number;
   seed?: number;
   intensity?: number;
-  // When true, the shader applies its seed-driven unique arrangement. Older
-  // artifacts pass false so they render exactly as they always have.
   unique?: boolean;
   paused?: boolean;
-  // Drawing-buffer DPR cap. Fragment cost scales with the square of this; 1 is
-  // plenty for a small thumbnail.
   maxDpr?: number;
-  // Frame-rate cap for the animation. Ambient motion looks fine at 30.
   fps?: number;
 }
 
@@ -44,7 +28,9 @@ export function ShaderThumb({
   const rafRef = useRef(0);
   const startRef = useRef(0);
   const lastDrawRef = useRef(0);
-  const inViewRef = useRef(false);
+  const activeRef = useRef(false);
+  const ioDetectedRef = useRef(false);
+  const renderOnceRef = useRef<((now: number) => void) | null>(null);
   const startLoopRef = useRef<(() => void) | null>(null);
 
   const propsRef = useRef({ fragmentShader, timeOffset, seed, intensity, unique, paused, maxDpr, fps });
@@ -82,10 +68,11 @@ export function ShaderThumb({
         ctx.drawImage(src, 0, 0, canvas!.width, canvas!.height);
       }
     }
+    renderOnceRef.current = renderOnce;
 
     function loop() {
-      if (!alive || !inViewRef.current || propsRef.current.paused) {
-        rafRef.current = 0; // fully stop, no idle rAF spinning
+      if (!alive || !activeRef.current || propsRef.current.paused) {
+        rafRef.current = 0;
         return;
       }
       const now = performance.now();
@@ -100,10 +87,8 @@ export function ShaderThumb({
     }
 
     function startLoop() {
-      if (!alive || !inViewRef.current || propsRef.current.paused || rafRef.current) return;
-      // When (re)starting after an idle pause, resync the clock so motion picks up
-      // smoothly instead of jumping by however long the card sat still.
-      startRef.current = performance.now() - (startRef.current ? 0 : 0);
+      if (!alive || !activeRef.current || propsRef.current.paused || rafRef.current) return;
+      startRef.current = performance.now();
       rafRef.current = requestAnimationFrame(loop);
     }
     startLoopRef.current = startLoop;
@@ -111,13 +96,22 @@ export function ShaderThumb({
     const io = new IntersectionObserver(
       (entries) => {
         for (const e of entries) {
-          inViewRef.current = e.isIntersecting;
           if (e.isIntersecting) {
-            renderOnce(performance.now()); // paint the REAL shader immediately
+            ioDetectedRef.current = true;
+            activeRef.current = true;
+            renderOnce(performance.now());
             startLoop();
-          } else if (rafRef.current) {
-            cancelAnimationFrame(rafRef.current);
-            rafRef.current = 0; // 2D canvas keeps its last frame
+          } else {
+            // In the 3D carousel, IO misreports visibility due to CSS transforms.
+            // If IO has never detected this card, it's likely inside a 3D container
+            // and we should trust the paused prop instead of IO.
+            if (ioDetectedRef.current) {
+              activeRef.current = false;
+              if (rafRef.current) {
+                cancelAnimationFrame(rafRef.current);
+                rafRef.current = 0;
+              }
+            }
           }
         }
       },
@@ -125,7 +119,17 @@ export function ShaderThumb({
     );
     io.observe(canvas);
 
+    // Fallback for 3D-transformed containers where IO never fires isIntersecting.
+    const fallback = window.setTimeout(() => {
+      if (alive && !activeRef.current && !propsRef.current.paused) {
+        activeRef.current = true;
+        renderOnce(performance.now());
+        startLoop();
+      }
+    }, 80);
+
     return () => {
+      window.clearTimeout(fallback);
       alive = false;
       io.disconnect();
       if (rafRef.current) cancelAnimationFrame(rafRef.current);
@@ -133,14 +137,15 @@ export function ShaderThumb({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [fragmentShader]);
 
-  // Resume animation when unpaused (e.g. on hover); the loop self-stops on pause.
+  // When the carousel unpauses this card, paint immediately and start animating.
   useEffect(() => {
-    if (!paused) startLoopRef.current?.();
+    if (!paused) {
+      activeRef.current = true;
+      renderOnceRef.current?.(performance.now());
+      startLoopRef.current?.();
+    }
   }, [paused]);
 
-  // Palette expansion: deterministic per-seed hue rotation + saturation lift,
-  // applied only to unique (new) artifacts so existing ones keep their exact
-  // colors. Bounded (±~36°) so it shifts within the room's emotional family.
   const filter = unique
     ? `hue-rotate(${((seed % 37) - 18)}deg) saturate(${1 + (seed % 22) / 100})`
     : "none";
