@@ -23,6 +23,7 @@ interface DoorProps {
 
 export function EmotionDoor({ room, isHovered, isOpening, isReturning = false, isReturnLocked = false, onHover, onClick }: DoorProps) {
   const [returnClosing, setReturnClosing] = useState(isReturning);
+  const wasReturningRef = useRef(isReturning);
 
   useEffect(() => {
     if (!isReturning) {
@@ -31,9 +32,19 @@ export function EmotionDoor({ room, isHovered, isOpening, isReturning = false, i
     }
 
     setReturnClosing(true);
-    const t = window.setTimeout(() => setReturnClosing(false), 680);
+    const t = window.setTimeout(() => {
+      wasReturningRef.current = true;
+      setReturnClosing(false);
+    }, 680);
     return () => window.clearTimeout(t);
   }, [isReturning]);
+
+  useEffect(() => {
+    if (wasReturningRef.current && !returnClosing) {
+      const id = requestAnimationFrame(() => { wasReturningRef.current = false; });
+      return () => cancelAnimationFrame(id);
+    }
+  }, [returnClosing]);
 
   const interactive = !isReturnLocked;
   const active = isHovered || isOpening || returnClosing;
@@ -117,7 +128,7 @@ export function EmotionDoor({ room, isHovered, isOpening, isReturning = false, i
         </div>
 
         <div
-          className="absolute inset-0 z-10 transition-opacity duration-150"
+          className={`absolute inset-0 z-10 ${wasReturningRef.current ? "" : "transition-opacity duration-150"}`}
           style={{ opacity: hideClosedDoor ? 0 : 1 }}
         >
           <EmotionDoorImage
